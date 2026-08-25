@@ -32,7 +32,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const message = isSearching 
                 ? '<p>No visualizations match your search.</p>'
                 : '<p>No history yet.</p><p>Use the bookmarklet or import a file to get started.</p>';
-            historyList.innerHTML = `<div class="text-center text-slate-500 dark:text-slate-400 py-8 bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm">${message}</div>`;
+            historyList.innerHTML = `<div class="text-center text-slate-500 py-8 bg-white border border-slate-200 rounded-lg shadow-sm">${message}</div>`;
             return;
         }
 
@@ -105,8 +105,8 @@ document.addEventListener('DOMContentLoaded', () => {
             btn.disabled = isDisabled;
             const baseClasses = "px-3 py-1.5 border rounded-md text-sm font-medium transition-colors";
             const activeClasses = "bg-sky-600 border-sky-600 text-white";
-            const defaultClasses = "bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700";
-            const disabledClasses = "bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 cursor-not-allowed border-slate-200 dark:border-slate-700";
+            const defaultClasses = "bg-white text-slate-700 border-slate-300 hover:bg-slate-50";
+            const disabledClasses = "bg-slate-100 text-slate-400 cursor-not-allowed border-slate-200";
 
             btn.className = `${baseClasses} ${isDisabled ? disabledClasses : (isActive ? activeClasses : defaultClasses)}`;
             if (!isDisabled) {
@@ -117,7 +117,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         const createEllipsis = () => {
             const span = document.createElement('span');
-            span.className = 'px-1.5 py-1.5 text-slate-500 dark:text-slate-400 flex items-center justify-center';
+            span.className = 'px-1.5 py-1.5 text-slate-500 flex items-center justify-center';
             span.textContent = '...';
             return span;
         };
@@ -292,7 +292,7 @@ document.addEventListener('DOMContentLoaded', () => {
             
             const input = document.createElement('input');
             input.type = 'text'; input.value = originalName;
-            input.className = 'w-full text-base font-semibold bg-white dark:bg-slate-700 border border-sky-400 rounded-md px-1 py-0.5 -my-0.5 focus:outline-none focus:ring-1 focus:ring-sky-500';
+            input.className = 'w-full text-base font-semibold bg-white border border-sky-400 rounded-md px-1 py-0.5 -my-0.5 focus:outline-none focus:ring-1 focus:ring-sky-500';
             input.addEventListener('click', e => e.stopPropagation());
             
             // Handle existing badges during edit

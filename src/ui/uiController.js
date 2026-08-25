@@ -257,9 +257,8 @@ export class UIController {
         const barWidth = w / counts.length;
 
         ctx.clearRect(0, 0, w, h);
-        const isDark = document.documentElement.classList.contains('dark');
         // Use a solid color, the opacity is handled by the canvas CSS class (0.4)
-        ctx.fillStyle = isDark ? '#38bdf8' : '#0ea5e9'; // sky-400 : sky-500
+        ctx.fillStyle = '#0ea5e9'; // sky-500
 
         counts.forEach((count, i) => {
             const barH = (count / max) * h;
@@ -306,7 +305,6 @@ export class UIController {
             requestAnimationFrame(() => this._renderHistogram(histogramData));
         }
 
-        window.addEventListener('themechange', () => this._renderHistogram(histogramData));
         window.addEventListener('resize', debounce(() => this._renderHistogram(histogramData), 200));
     }
 
@@ -330,12 +328,12 @@ export class UIController {
     setVisualizationTitle(name) {
         if (!this.titleAreaEl) return;
         this.titleAreaEl.innerHTML = '';
-        const titleEl = document.createElement('h2'); titleEl.className = 'text-xl font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-2';
+        const titleEl = document.createElement('h2'); titleEl.className = 'text-xl font-semibold text-slate-800 flex items-center gap-2';
         const textSpan = document.createElement('span'); textSpan.textContent = name; textSpan.className = 'flex-1';
         const editButton = document.createElement('button'); editButton.title = 'Edit name'; editButton.className = 'title-edit-btn'; editButton.innerHTML = `<span class="material-symbols-outlined">edit</span>`;
         editButton.addEventListener('click', (e) => {
             e.preventDefault(); const currentName = textSpan.textContent; const input = document.createElement('input');
-            input.type = 'text'; input.value = currentName; input.className = 'text-xl font-semibold text-slate-900 bg-white dark:text-slate-100 dark:bg-slate-900 border border-sky-500 rounded-lg px-2 py-1 w-full focus:outline-none focus:ring-2 focus:ring-sky-500';
+            input.type = 'text'; input.value = currentName; input.className = 'text-xl font-semibold text-slate-900 bg-white border border-sky-500 rounded-lg px-2 py-1 w-full focus:outline-none focus:ring-2 focus:ring-sky-500';
             const save = () => { const newName = input.value.trim(); if (newName && newName !== currentName) { this.callbacks.onTitleChange(newName); textSpan.textContent = newName; } titleEl.replaceChild(textSpan, input); titleEl.appendChild(editButton); };
             input.addEventListener('blur', save); input.addEventListener('keydown', (e) => { if (e.key === 'Enter') input.blur(); if (e.key === 'Escape') { input.value = currentName; input.blur(); } });
             titleEl.replaceChild(input, textSpan); titleEl.removeChild(editButton); input.focus(); input.select();
@@ -382,13 +380,11 @@ export class UIController {
         });
         const sortedNumericLabels = Object.keys(clusters).map(l => parseInt(l, 10)).sort((a, b) => { if (a === -1) return 1; if (b === -1) return -1; return a - b; });
         const uniqueClusterLabels = sortedNumericLabels.filter(l => l !== -1);
-        const isDark = document.documentElement.classList.contains('dark');
         const getColorForCluster = (label) => {
-            if (label == -1) return isDark ? '#475569' : '#d1d5db';
+            if (label == -1) return '#d1d5db';
             const clusterIndex = uniqueClusterLabels.indexOf(label);
             const hue = (clusterIndex * (360 / (uniqueClusterLabels.length + 1))) % 360;
-            const saturation = isDark ? 70 : 80; const lightness = isDark ? 60 : 50;
-            return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+            return `hsl(${hue}, 80%, 50%)`;
         };
         const eyeIcon = `<span class="material-symbols-outlined">visibility</span>`;
         const eyeOffIcon = `<span class="material-symbols-outlined">visibility_off</span>`;
@@ -438,7 +434,7 @@ export class UIController {
             const itemDiv = document.createElement('div'); itemDiv.className = 'response-item'; itemDiv.dataset.originalIndex = item.globalIndex;
 
             let timestampHtml = '';
-            if (item.timestamp) { try { const date = new Date(item.timestamp); const formattedDate = date.toLocaleString(undefined, { year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }); timestampHtml = `<span class="text-slate-500 dark:text-slate-400 text-xs ml-2">• ${formattedDate}</span>`; } catch (e) { console.warn("Could not parse timestamp:", item.timestamp, e); } }
+            if (item.timestamp) { try { const date = new Date(item.timestamp); const formattedDate = date.toLocaleString(undefined, { year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }); timestampHtml = `<span class="text-slate-500 text-xs ml-2">• ${formattedDate}</span>`; } catch (e) { console.warn("Could not parse timestamp:", item.timestamp, e); } }
 
             // New Layout for Sidebar List
             let avatarHtml = `<div class="response-avatar-placeholder">${item.author.charAt(0).toUpperCase()}</div>`;
@@ -452,7 +448,7 @@ export class UIController {
                     </div>
                     <div class="response-content">
                         <div class="response-header">
-                            <b>@${item.author}</b> <span class="text-slate-500 dark:text-slate-400 text-xs">(❤️ ${item.likes})</span>${timestampHtml}
+                            <b>@${item.author}</b> <span class="text-slate-500 text-xs">(❤️ ${item.likes})</span>${timestampHtml}
                         </div>
                         <div class="mt-1">${item.content}</div>
                     </div>

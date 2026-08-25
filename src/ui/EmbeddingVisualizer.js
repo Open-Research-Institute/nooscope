@@ -6,7 +6,6 @@ export class EmbeddingVisualizer {
     constructor({ containerId }) {
         this.containerId = containerId;
         this.popup = null; // To hold the popup instance
-        this.isDarkTheme = document.documentElement.classList.contains('dark');
         this.loadedImages = new Set(); // Track loaded author images
 
         this.map = new maplibregl.Map({
@@ -24,7 +23,7 @@ export class EmbeddingVisualizer {
         });
 
         this.map.on('load', () => {
-            this._updateMapTheme(); // Set initial theme for background
+            this._setupBackground();
             this._setupInitialLayers();
 
             // Handle clicking on a point to open the post
@@ -45,50 +44,16 @@ export class EmbeddingVisualizer {
                 this._removePopup();
             });
         });
-
-        // Listen for theme changes to update the map style
-        window.addEventListener('themechange', this._updateMapTheme.bind(this));
     }
 
-    _updateMapTheme() {
+    _setupBackground() {
         if (!this.map || !this.map.isStyleLoaded()) return;
 
-        this.isDarkTheme = document.documentElement.classList.contains('dark');
-        const bgColor = this.isDarkTheme ? '#1e293b' : '#f1f5f9'; // slate-800 : slate-100
-
-        if (this.map.getLayer('background')) {
-            this.map.setPaintProperty('background', 'background-color', bgColor);
-        } else {
-            this.map.addLayer({
-                'id': 'background',
-                'type': 'background',
-                'paint': { 'background-color': bgColor }
-            }, this.map.getStyle().layers[0]?.id); // Add it at the bottom
-        }
-
-        // Update paint properties of existing layers if they exist
-        const pointLabelTextColor = this.isDarkTheme ? '#e2e8f0' : '#0f172a'; // slate-200 : slate-900
-        const pointLabelHaloColor = this.isDarkTheme ? 'rgba(15, 23, 42, 0.9)' : 'rgba(255, 255, 255, 0.9)'; // slate-950 : white
-
-        if (this.map.getLayer('point-labels')) {
-            this.map.setPaintProperty('point-labels', 'text-color', pointLabelTextColor);
-            this.map.setPaintProperty('point-labels', 'text-halo-color', pointLabelHaloColor);
-        }
-        if (this.map.getLayer('cluster-name-labels')) {
-            this.map.setPaintProperty('cluster-name-labels', 'text-halo-color', this.isDarkTheme ? 'rgba(30, 41, 59, 0.9)' : 'rgba(255, 255, 255, 0.9)'); // slate-800 : white
-        }
-        if (this.map.getLayer('query-point-circle')) {
-            const queryPointColor = this.isDarkTheme ? '#f8fafc' : '#0f172a'; // slate-50 : slate-900
-            const queryPointStroke = this.isDarkTheme ? '#1e293b' : '#ffffff'; // slate-800 : white
-            this.map.setPaintProperty('query-point-circle', 'circle-color', queryPointColor);
-            this.map.setPaintProperty('query-point-circle', 'circle-stroke-color', queryPointStroke);
-        }
-        if (this.map.getLayer('query-point-label')) {
-            const queryLabelColor = this.isDarkTheme ? '#f8fafc' : '#0f172a';
-            const queryLabelHalo = this.isDarkTheme ? 'rgba(30, 41, 59, 0.9)' : 'rgba(255, 255, 255, 0.9)';
-            this.map.setPaintProperty('query-point-label', 'text-color', queryLabelColor);
-            this.map.setPaintProperty('query-point-label', 'text-halo-color', queryLabelHalo);
-        }
+        this.map.addLayer({
+            'id': 'background',
+            'type': 'background',
+            'paint': { 'background-color': '#f1f5f9' } // slate-100
+        }, this.map.getStyle().layers[0]?.id); // Add it at the bottom
     }
 
     getMapInstance = () => this.map;
@@ -169,8 +134,8 @@ export class EmbeddingVisualizer {
         this.map.addSource('cluster-names', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
         this.map.addSource('highlight-point', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
 
-        const pointLabelTextColor = this.isDarkTheme ? '#e2e8f0' : '#0f172a'; // slate-200 : slate-900
-        const pointLabelHaloColor = this.isDarkTheme ? 'rgba(15, 23, 42, 0.9)' : 'rgba(255, 255, 255, 0.9)'; // slate-950 : white
+        const pointLabelTextColor = '#0f172a'; // slate-900
+        const pointLabelHaloColor = 'rgba(255, 255, 255, 0.9)';
 
         this.map.addLayer({
             id: 'point-labels',
@@ -193,7 +158,7 @@ export class EmbeddingVisualizer {
         this.map.addLayer({
             id: 'cluster-name-labels', type: 'symbol', source: 'cluster-names',
             layout: { 'text-field': ['get', 'name'], 'text-size': 16, 'text-font': ["Noto Sans Bold"], 'text-allow-overlap': true, 'text-ignore-placement': true },
-            paint: { 'text-color': ['get', 'color'], 'text-halo-color': this.isDarkTheme ? 'rgba(30, 41, 59, 0.9)' : 'rgba(255, 255, 255, 0.9)', 'text-halo-width': 2, 'text-halo-blur': 1 }
+            paint: { 'text-color': ['get', 'color'], 'text-halo-color': 'rgba(255, 255, 255, 0.9)', 'text-halo-width': 2, 'text-halo-blur': 1 }
         });
 
         this.map.addLayer({
@@ -206,10 +171,10 @@ export class EmbeddingVisualizer {
             }
         });
 
-        const queryPointColor = this.isDarkTheme ? '#f8fafc' : '#0f172a'; // slate-50 : slate-900
-        const queryPointStroke = this.isDarkTheme ? '#1e293b' : '#ffffff'; // slate-800 : white
-        const queryLabelColor = this.isDarkTheme ? '#f8fafc' : '#0f172a';
-        const queryLabelHalo = this.isDarkTheme ? 'rgba(30, 41, 59, 0.9)' : 'rgba(255, 255, 255, 0.9)';
+        const queryPointColor = '#0f172a'; // slate-900
+        const queryPointStroke = '#ffffff';
+        const queryLabelColor = '#0f172a';
+        const queryLabelHalo = 'rgba(255, 255, 255, 0.9)';
 
         this.map.addLayer({
             id: 'query-point-circle', type: 'circle', source: 'query-point',
@@ -226,11 +191,9 @@ export class EmbeddingVisualizer {
     _getColorForLabel(label, uniqueLabels) {
         if (label === -1) return '#94a3b8'; // slate-400
         const index = uniqueLabels.indexOf(label);
-        if (index === -1) return this.isDarkTheme ? '#e2e8f0' : '#0f172a';
+        if (index === -1) return '#0f172a';
         const hue = (index * (360 / (uniqueLabels.length + 1))) % 360;
-        const saturation = this.isDarkTheme ? 70 : 80;
-        const lightness = this.isDarkTheme ? 60 : 50;
-        return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+        return `hsl(${hue}, 80%, 50%)`;
     }
 
     _generateColorScale(labels) {
@@ -239,7 +202,7 @@ export class EmbeddingVisualizer {
         [...uniqueLabels, -1].forEach(label => {
             colorScale.push(label, this._getColorForLabel(label, uniqueLabels));
         });
-        colorScale.push(this.isDarkTheme ? '#e2e8f0' : '#0f172a'); // Fallback
+        colorScale.push('#0f172a'); // Fallback
         return colorScale;
     }
 
