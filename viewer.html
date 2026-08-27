@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Postscope - Visualization</title>
+    <title>Nooscope - Visualization</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🦠</text></svg>">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
     <link rel="stylesheet" type="text/css" href="./style.css">
 </head>
@@ -41,8 +42,14 @@
 
             <!-- Search -->
             <div id="query-container" class="shrink-0 p-6 flex flex-col" style="height: 10rem;">
-                <label for="query-input" class="block text-sm font-medium text-slate-700 mb-1">Search</label>
-                <textarea id="query-input" placeholder="Filter by text or author..." class="w-full h-full px-3 py-2 bg-white border border-slate-300 shadow-sm focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition placeholder:text-slate-400 resize-none rounded-lg"></textarea>
+                <div class="flex items-center justify-between mb-1">
+                    <label for="query-input" class="block text-sm font-medium text-slate-700">Regex search</label>
+                    <label for="query-case-sensitive" class="flex items-center gap-1.5 text-xs text-slate-500 select-none">
+                        <input type="checkbox" id="query-case-sensitive" class="rounded border-slate-300 text-sky-600 focus:ring-sky-500" />
+                        Case sensitive
+                    </label>
+                </div>
+                <textarea id="query-input" placeholder="Regex search" class="w-full h-full px-3 py-2 bg-white border border-slate-300 shadow-sm focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition placeholder:text-slate-400 resize-none rounded-lg"></textarea>
             </div>
         </aside>
 

@@ -8,6 +8,7 @@ export class UIController {
 
         this.toggleLabelsButton = document.getElementById('toggle-labels-button');
         this.queryInput = document.getElementById('query-input');
+        this.queryCaseSensitiveInput = document.getElementById('query-case-sensitive');
         this.statusArea = document.getElementById('status-area');
         this.sourceInfoEl = document.getElementById('source-info');
         this.titleAreaEl = document.getElementById('visualization-title-area');
@@ -53,11 +54,14 @@ export class UIController {
     _attachEventListeners() {
         this.toggleLabelsButton.addEventListener('click', () => this.callbacks.onToggleLabels());
 
-        // Plain substring filter over already-loaded points (author or text) — no
-        // embedding involved, so it needs no network access.
+        // Regex filter over already-loaded points (author or text) — no embedding
+        // involved, so it needs no network access.
         this.queryInput.addEventListener('input', debounce((e) => {
-            this.callbacks.onSearchChange(e.target.value.trim());
+            this.callbacks.onSearchChange(e.target.value.trim(), this.queryCaseSensitiveInput.checked);
         }, 300));
+        this.queryCaseSensitiveInput.addEventListener('change', (e) => {
+            this.callbacks.onSearchChange(this.queryInput.value.trim(), e.target.checked);
+        });
 
         // --- Custom Timeline Interaction Logic ---
         if (this.timelineBrushContainer) {
@@ -328,7 +332,7 @@ export class UIController {
     render(appState, visualizer, shouldFitBounds = false) {
         const { items, coords, labels } = appState.getFilteredData();
 
-        visualizer.render(items, coords, labels, appState.getSourceCount(), appState.getArePointLabelsVisible(), shouldFitBounds, appState.getSearchQuery());
+        visualizer.render(items, coords, labels, appState.getSourceCount(), appState.getArePointLabelsVisible(), shouldFitBounds, appState.getSearchQuery(), appState.getIsSearchCaseSensitive());
         this._renderClusterUI(items, labels, appState);
     }
     _renderClusterUI(items, labels, appState) {

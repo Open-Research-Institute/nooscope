@@ -11,8 +11,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const visualizationContainer = document.getElementById('visualization-container');
 
     const ui = new UIController({
-        onSearchChange: (query) => {
-            appState.setSearchQuery(query);
+        onSearchChange: (query, caseSensitive) => {
+            appState.setSearchQuery(query, caseSensitive);
             // No fit-bounds — search dims non-matching points in place, it never
             // changes the map view.
             ui.render(appState, visualizer, false);

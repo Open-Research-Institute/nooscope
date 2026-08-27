@@ -41,7 +41,7 @@ async function main() {
     });
 
     await fs.mkdir(path.dirname(out) || '.', { recursive: true });
-    await fs.writeFile(out, JSON.stringify(result));
+    await fs.writeFile(out, JSON.stringify(result, null, 2));
     console.log(`[pipeline] wrote ${out} (${result.points.length} points, ${result.sources.length} sources)`);
 }
 

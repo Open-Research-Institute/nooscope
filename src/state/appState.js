@@ -5,6 +5,7 @@ export class AppState {
         this.data2D = [];
         this.arePointLabelsVisible = true;
         this.searchQuery = '';
+        this.isSearchCaseSensitive = false;
 
         // Which input file each item in allItems came from (parallel array).
         this.sourceLabels = [];
@@ -29,6 +30,7 @@ export class AppState {
     getSources = () => this.sources;
     getSourceCount = () => this.sources.length;
     getSearchQuery = () => this.searchQuery;
+    getIsSearchCaseSensitive = () => this.isSearchCaseSensitive;
 
     getTimeRange = () => ({
         globalMin: this.globalMinDate,
@@ -40,7 +42,10 @@ export class AppState {
     // --- SETTERS & STATE MODIFIERS ---
     setVisualizationName = (name) => { this.visualizationName = name; };
     setArePointLabelsVisible = (isVisible) => { this.arePointLabelsVisible = isVisible; };
-    setSearchQuery = (query) => { this.searchQuery = (query || '').trim().toLowerCase(); };
+    setSearchQuery = (query, caseSensitive = false) => {
+        this.searchQuery = (query || '').trim();
+        this.isSearchCaseSensitive = caseSensitive;
+    };
 
     setTimeRange(start, end) {
         this.currentStartDate = start;

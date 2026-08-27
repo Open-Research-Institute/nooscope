@@ -172,12 +172,22 @@ export class EmbeddingVisualizer {
         return colorScale;
     }
 
-    render(pointsData, twoDimCoords, labels, sourceCount, areLabelsVisible, shouldFitBounds = false, searchQuery = '') {
+    render(pointsData, twoDimCoords, labels, sourceCount, areLabelsVisible, shouldFitBounds = false, searchQuery = '', searchCaseSensitive = false) {
         if (!this._loaded) {
-            this._ready.then(() => this.render(pointsData, twoDimCoords, labels, sourceCount, areLabelsVisible, shouldFitBounds, searchQuery));
+            this._ready.then(() => this.render(pointsData, twoDimCoords, labels, sourceCount, areLabelsVisible, shouldFitBounds, searchQuery, searchCaseSensitive));
             return;
         }
         if (twoDimCoords.length === 0) return;
+
+        // Search never filters or re-fits the map — it just dims (greys out + lowers
+        // opacity) points that don't match, so the view stays put as you type. The query
+        // is treated as a regex; an invalid pattern matches nothing rather than
+        // throwing, since the user may still be mid-edit.
+        const query = (searchQuery || '').trim();
+        let searchRegex = null;
+        if (query) {
+            try { searchRegex = new RegExp(query, searchCaseSensitive ? '' : 'i'); } catch { searchRegex = null; }
+        }
 
         const geojson = {
             type: "FeatureCollection", features: pointsData.map((point, i) => ({
@@ -189,6 +199,7 @@ export class EmbeddingVisualizer {
                     likes: point.likes || 0,
                     url: point.url,
                     cluster_label: labels[i],
+                    match: searchRegex ? (searchRegex.test(point.content || '') || searchRegex.test(point.author || '')) : true,
                 }
             }))
         };
@@ -199,14 +210,7 @@ export class EmbeddingVisualizer {
 
         const radiusExpression = ['+', 5, ['*', 3, ['log10', ['+', 1, ['coalesce', ['get', 'likes'], 0]]]]];
 
-        // Search never filters or re-fits the map — it just dims (greys out + lowers
-        // opacity) points that don't match, so the view stays put as you type.
-        const query = (searchQuery || '').trim().toLowerCase();
-        const isMatch = query
-            ? ['any',
-                ['in', query, ['downcase', ['get', 'text']]],
-                ['in', query, ['downcase', ['get', 'author']]]]
-            : true;
+        const isMatch = ['get', 'match'];
         const colorExpression = query
             ? ['case', isMatch, this._generateColorScale(labels, sourceCount), '#cbd5e1']
             : this._generateColorScale(labels, sourceCount);
@@ -216,7 +220,7 @@ export class EmbeddingVisualizer {
             id: 'points-circles', type: 'circle', source: 'points',
             layout: { 'circle-sort-key': ['coalesce', ['get', 'likes'], 0] },
             paint: {
-                'circle-radius': radiusExpression,
+                //'circle-radius': radiusExpression,
                 'circle-color': colorExpression,
                 'circle-opacity': opacityExpression,
             }
