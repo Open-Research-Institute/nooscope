@@ -2,12 +2,20 @@
 /node_modules
 /zips
 /dist
+data/
 
 # Vite build output
 /dist
 
+# Generated bookmarklet bundles (npm run build:bookmarklets)
+/src/generated
+
+# Embedding cache for scripts/embed.mjs / scripts/pipeline.mjs
+/.cache
+
 # IDE / Editor specific
 .vscode/
+.DS_Store
 *.suo
 *.ntvs*
 *.njsproj

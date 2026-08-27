@@ -16,8 +16,6 @@
     .spinner { @apply border-4 border-slate-200 border-l-sky-500 rounded-full w-5 h-5 animate-spin; }
     .info-banner { @apply text-sm p-4 bg-sky-50 border-l-4 border-sky-500 text-sky-800 mt-4 rounded-lg flex items-center gap-3; }
     .info-banner p { @apply m-0 flex-1; }
-    .version-warning-banner { @apply text-sm p-4 bg-amber-50 border border-amber-300 text-amber-900 rounded-lg flex items-start gap-3; }
-    .version-warning-banner a { @apply font-bold underline hover:text-amber-700; }
     .error-container { @apply text-center p-4 bg-red-50 border-l-4 border-red-500 text-red-800 mt-4 rounded-lg; }
     .error-container p { @apply m-0 font-medium; }
     #source-info blockquote { @apply mt-2 ml-0 pl-3 border-l-2 border-slate-300 italic text-slate-500; }
@@ -43,7 +41,6 @@
     /* New Sidebar Item Layout */
     .response-item-inner { @apply flex items-start gap-3; }
     .response-avatar-container { @apply shrink-0; }
-    .response-avatar { @apply w-10 h-10 rounded-full object-cover bg-slate-200; }
     .response-avatar-placeholder { @apply w-10 h-10 rounded-full bg-slate-300 flex items-center justify-center text-slate-500 font-bold; }
     .response-content { @apply flex-1 min-w-0; }
     .response-header { @apply break-words; }
@@ -55,7 +52,6 @@
 
     .popup-header-row { @apply flex items-center gap-3 mb-2; }
     .popup-avatar-container { @apply shrink-0; }
-    .popup-avatar { @apply w-10 h-10 rounded-full object-cover bg-slate-200; }
     .popup-avatar-placeholder { @apply w-10 h-10 rounded-full bg-slate-300 flex items-center justify-center text-slate-500 font-bold; }
 
     .popup-meta { @apply flex flex-col justify-center; }

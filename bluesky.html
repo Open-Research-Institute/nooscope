@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🦠</text></svg>">
+    <link rel="stylesheet" type="text/css" href="./style.css">
+    <title>Noöscope — Bluesky Import</title>
+</head>
+<body class="bg-slate-100 text-slate-900 font-sans antialiased">
+    <div class="container mx-auto px-4 py-8 sm:py-12 max-w-3xl">
+        <header class="text-center mb-8">
+            <h1 class="text-3xl font-bold text-sky-600 tracking-tight">🦠 Noöscope — Bluesky Import</h1>
+            <p class="mt-2 text-slate-600">Paste a Bluesky post URL to pull its full reply thread.</p>
+        </header>
+
+        <form id="import-form" class="bg-white border border-slate-200 rounded-lg shadow-sm p-4 flex gap-3">
+            <input id="thread-url-input" type="text" placeholder="https://bsky.app/profile/handle/post/xxxxxxxxxxxxx"
+                   class="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500">
+            <button type="submit" class="px-5 py-2 bg-sky-600 text-white font-bold rounded-lg shadow-md hover:bg-sky-700 transition-all">Run</button>
+        </form>
+
+        <div id="status-area" class="mt-6 text-center text-slate-500"></div>
+        <a id="download-btn" class="hidden inline-block px-5 py-2 bg-sky-600 text-white font-bold rounded-lg shadow-md hover:bg-sky-700 transition-all no-underline">Download JSON</a>
+        <pre id="result-area" class="mt-6 bg-white border border-slate-200 rounded-lg shadow-sm p-4 text-xs leading-relaxed whitespace-pre-wrap break-words"></pre>
+    </div>
+    <script type="module" src="/src/collectors/bluesky/main.js"></script>
+</body>
+</html>

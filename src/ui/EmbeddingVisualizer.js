@@ -1,12 +1,11 @@
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
-import { profilePicCache } from '../services/ProfilePicCache.js';
+import { getColorForSource } from '../shared/sourceColors.js';
 
 export class EmbeddingVisualizer {
     constructor({ containerId }) {
         this.containerId = containerId;
         this.popup = null; // To hold the popup instance
-        this.loadedImages = new Set(); // Track loaded author images
 
         this.map = new maplibregl.Map({
             container: containerId,
@@ -22,26 +21,39 @@ export class EmbeddingVisualizer {
             zoom: 1
         });
 
-        this.map.on('load', () => {
-            this._setupBackground();
-            this._setupInitialLayers();
+        // MapLibre's 'load' event fires exactly once; a listener registered after it already
+        // fired never gets called, so render() can't gate on `.once('load', ...)` more than
+        // once. Track "has loaded at least once" ourselves instead. Note this is deliberately
+        // NOT the same thing as map.isStyleLoaded(), which also goes false any time the style
+        // has transient pending work (e.g. fetching a new glyph range while panning) — gating
+        // on that instead caused an infinite microtask loop (each deferral re-checked, was
+        // still transiently "not loaded", deferred again, forever).
+        this._loaded = false;
+        this._ready = new Promise((resolve) => {
+            this.map.on('load', () => {
+                this._setupBackground();
+                this._setupInitialLayers();
 
-            // Handle clicking on a point to open the post
-            this.map.on('click', 'points-circles', (e) => {
-                if (e.features?.[0]?.properties?.url) {
-                    window.open(e.features[0].properties.url, '_blank', 'noopener,noreferrer');
-                }
-            });
+                // Handle clicking on a point to open the post
+                this.map.on('click', 'points-circles', (e) => {
+                    if (e.features?.[0]?.properties?.url) {
+                        window.open(e.features[0].properties.url, '_blank', 'noopener,noreferrer');
+                    }
+                });
 
-            // Change cursor and show popup on hover
-            this.map.on('mouseenter', 'points-circles', (e) => {
-                this.map.getCanvas().style.cursor = 'pointer';
-                const properties = e.features[0].properties;
-                this._createPopup(e.lngLat, properties);
-            });
-            this.map.on('mouseleave', 'points-circles', () => {
-                this.map.getCanvas().style.cursor = '';
-                this._removePopup();
+                // Change cursor and show popup on hover
+                this.map.on('mouseenter', 'points-circles', (e) => {
+                    this.map.getCanvas().style.cursor = 'pointer';
+                    const properties = e.features[0].properties;
+                    this._createPopup(e.lngLat, properties);
+                });
+                this.map.on('mouseleave', 'points-circles', () => {
+                    this.map.getCanvas().style.cursor = '';
+                    this._removePopup();
+                });
+
+                this._loaded = true;
+                resolve();
             });
         });
     }
@@ -70,26 +82,7 @@ export class EmbeddingVisualizer {
             } catch (e) { /* ignore invalid date */ }
         }
 
-        // Default placeholder if no profile pic
-        let avatarHtml = `<div class="popup-avatar-placeholder">${properties.author.charAt(0).toUpperCase()}</div>`;
-        // We will try to load the image asynchronously
-        avatarHtml += `<img class="popup-avatar" alt="${properties.author}" style="display:none" />`;
-
-        // Fetch blob URL
-        profilePicCache.getBlobUrl(properties.author).then(url => {
-            if (url && this.popup) {
-                const el = this.popup.getElement();
-                if (el) {
-                    const img = el.querySelector('.popup-avatar');
-                    const placeholder = el.querySelector('.popup-avatar-placeholder');
-                    if (img && placeholder) {
-                        img.src = url;
-                        img.style.display = 'block';
-                        placeholder.style.display = 'none';
-                    }
-                }
-            }
-        });
+        const avatarHtml = `<div class="popup-avatar-placeholder">${properties.author.charAt(0).toUpperCase()}</div>`;
 
         const popupContent = `
             <div class="post-popup-content">
@@ -130,8 +123,6 @@ export class EmbeddingVisualizer {
 
     _setupInitialLayers() {
         this.map.addSource('points', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
-        this.map.addSource('query-point', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
-        this.map.addSource('cluster-names', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
         this.map.addSource('highlight-point', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
 
         const pointLabelTextColor = '#0f172a'; // slate-900
@@ -156,12 +147,6 @@ export class EmbeddingVisualizer {
         });
 
         this.map.addLayer({
-            id: 'cluster-name-labels', type: 'symbol', source: 'cluster-names',
-            layout: { 'text-field': ['get', 'name'], 'text-size': 16, 'text-font': ["Noto Sans Bold"], 'text-allow-overlap': true, 'text-ignore-placement': true },
-            paint: { 'text-color': ['get', 'color'], 'text-halo-color': 'rgba(255, 255, 255, 0.9)', 'text-halo-width': 2, 'text-halo-blur': 1 }
-        });
-
-        this.map.addLayer({
             id: 'highlight-point-circle', type: 'circle', source: 'highlight-point',
             paint: {
                 'circle-radius': 18,
@@ -170,118 +155,29 @@ export class EmbeddingVisualizer {
                 'circle-stroke-color': '#0ea5e9' // sky-500
             }
         });
-
-        const queryPointColor = '#0f172a'; // slate-900
-        const queryPointStroke = '#ffffff';
-        const queryLabelColor = '#0f172a';
-        const queryLabelHalo = 'rgba(255, 255, 255, 0.9)';
-
-        this.map.addLayer({
-            id: 'query-point-circle', type: 'circle', source: 'query-point',
-            paint: { 'circle-radius': 10, 'circle-color': queryPointColor, 'circle-stroke-width': 3, 'circle-stroke-color': queryPointStroke }
-        });
-
-        this.map.addLayer({
-            id: 'query-point-label', type: 'symbol', source: 'query-point',
-            layout: { 'text-field': ['get', 'text'], 'text-variable-anchor': ['top', 'bottom', 'left', 'right'], 'text-radial-offset': 1.2, 'text-size': 14, 'text-font': ["Noto Sans Bold"] },
-            paint: { 'text-color': queryLabelColor, 'text-halo-color': queryLabelHalo, 'text-halo-width': 2 }
-        });
     }
 
-    _getColorForLabel(label, uniqueLabels) {
-        if (label === -1) return '#94a3b8'; // slate-400
-        const index = uniqueLabels.indexOf(label);
-        if (index === -1) return '#0f172a';
-        const hue = (index * (360 / (uniqueLabels.length + 1))) % 360;
-        return `hsl(${hue}, 80%, 50%)`;
-    }
-
-    _generateColorScale(labels) {
-        const uniqueLabels = [...new Set(labels)].filter(l => l !== -1).sort((a, b) => a - b);
+    // Colors come from the label + the total source count (via getColorForSource,
+    // see src/shared/sourceColors.js — edit SOURCE_COLOR_PALETTE there to customize),
+    // not from which labels happen to be present in the current (possibly filtered/
+    // hidden) view — otherwise a source's color would shift whenever another source
+    // gets hidden or filtered out.
+    _generateColorScale(labels, sourceCount) {
+        const uniqueLabels = [...new Set(labels)];
         const colorScale = ['match', ['get', 'cluster_label']];
-        [...uniqueLabels, -1].forEach(label => {
-            colorScale.push(label, this._getColorForLabel(label, uniqueLabels));
+        uniqueLabels.forEach(label => {
+            colorScale.push(label, getColorForSource(label, sourceCount));
         });
         colorScale.push('#0f172a'); // Fallback
         return colorScale;
     }
 
-    _updateClusterNameLayer(twoDimCoords, labels, customizations, labelToCustIdMap) {
-        const nameFeatures = [];
-        const uniqueLabels = [...new Set(labels)].filter(l => l !== -1).sort((a, b) => a - b);
-        const clusters = new Map();
-
-        labels.forEach((label, i) => {
-            if (label === -1) return;
-            if (!clusters.has(label)) clusters.set(label, { sumX: 0, sumY: 0, count: 0 });
-            const cluster = clusters.get(label);
-            cluster.sumX += twoDimCoords[i][0];
-            cluster.sumY += twoDimCoords[i][1];
-            cluster.count++;
-        });
-
-        for (const [label, custId] of labelToCustIdMap.entries()) {
-            const cust = customizations.get(custId);
-            if (cust && cust.name && cust.visible) {
-                const clusterData = clusters.get(label);
-                if (clusterData && clusterData.count > 0) {
-                    nameFeatures.push({
-                        type: "Feature",
-                        geometry: { type: "Point", coordinates: [clusterData.sumX / clusterData.count, clusterData.sumY / clusterData.count] },
-                        properties: { name: cust.name, color: this._getColorForLabel(label, uniqueLabels) }
-                    });
-                }
-            }
-        }
-        this.map.getSource('cluster-names').setData({ type: 'FeatureCollection', features: nameFeatures });
-    }
-
-    async _loadAuthorImages(authors) {
-        for (const author of authors) {
-            if (!this.loadedImages.has(author)) {
-                this.loadedImages.add(author); // Mark as requested to avoid duplicate calls
-
-                try {
-                    const blobUrl = await profilePicCache.getBlobUrl(author);
-                    if (blobUrl) {
-                        const img = new Image();
-                        img.crossOrigin = "Anonymous";
-                        img.src = blobUrl;
-                        img.onload = () => {
-                            // Create a circular crop of the profile picture
-                            const canvas = document.createElement('canvas');
-                            const size = 64; // Standard size for texture
-                            canvas.width = size;
-                            canvas.height = size;
-                            const ctx = canvas.getContext('2d');
-
-                            ctx.beginPath();
-                            ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2);
-                            ctx.closePath();
-                            ctx.clip();
-
-                            ctx.drawImage(img, 0, 0, size, size);
-
-                            if (!this.map.hasImage(author)) {
-                                this.map.addImage(author, ctx.getImageData(0, 0, size, size));
-                            }
-                        };
-                    }
-                } catch (e) {
-                    // console.warn(`Failed to load profile pic for ${author}`, e);
-                }
-            }
-        }
-    }
-
-    render(pointsData, twoDimCoords, labels, customizations, labelToCustIdMap, areLabelsVisible, shouldFitBounds = false) {
-        if (!this.map.isStyleLoaded() || twoDimCoords.length === 0) {
-            this.map.once('load', () => this.render(...arguments));
+    render(pointsData, twoDimCoords, labels, sourceCount, areLabelsVisible, shouldFitBounds = false, searchQuery = '') {
+        if (!this._loaded) {
+            this._ready.then(() => this.render(pointsData, twoDimCoords, labels, sourceCount, areLabelsVisible, shouldFitBounds, searchQuery));
             return;
         }
-
-        const uniqueAuthors = new Set(pointsData.map(p => p.author));
-        this._loadAuthorImages(uniqueAuthors);
+        if (twoDimCoords.length === 0) return;
 
         const geojson = {
             type: "FeatureCollection", features: pointsData.map((point, i) => ({
@@ -293,71 +189,45 @@ export class EmbeddingVisualizer {
                     likes: point.likes || 0,
                     url: point.url,
                     cluster_label: labels[i],
-                    // profile_pic: point.profilePic // Legacy, removed
                 }
             }))
         };
         this.map.getSource('points').setData(geojson);
 
-        // Remove layers to refresh order if needed, but here we just ensure they exist
+        // Remove the layer to refresh it if needed, but here we just ensure it exists
         if (this.map.getLayer('points-circles')) this.map.removeLayer('points-circles');
-        if (this.map.getLayer('points-icons')) this.map.removeLayer('points-icons');
 
-        // LOGIC:
-        // Base radius logic remains.
-        // Requested: "Make profile picture just 10% larger".
-        // Requested: "Make cluster color ring twice as thick".
-        // Old ring ~2px. New ring ~4px.
-        // Old logic: Radius = X. Icon Scale = (X - 2) / 32.
-        // New logic: 
-        // 1. Scale up the base Radius by 10% to make the whole point larger.
-        // 2. Adjust the Icon Scale subtraction to create a 4px gap (ring) instead of 2px.
+        const radiusExpression = ['+', 5, ['*', 3, ['log10', ['+', 1, ['coalesce', ['get', 'likes'], 0]]]]];
 
-        const baseRadius = ['+', 6, ['*', 3, ['log10', ['+', 1, ['coalesce', ['get', 'likes'], 0]]]]];
+        // Search never filters or re-fits the map — it just dims (greys out + lowers
+        // opacity) points that don't match, so the view stays put as you type.
+        const query = (searchQuery || '').trim().toLowerCase();
+        const isMatch = query
+            ? ['any',
+                ['in', query, ['downcase', ['get', 'text']]],
+                ['in', query, ['downcase', ['get', 'author']]]]
+            : true;
+        const colorExpression = query
+            ? ['case', isMatch, this._generateColorScale(labels, sourceCount), '#cbd5e1']
+            : this._generateColorScale(labels, sourceCount);
+        const opacityExpression = query ? ['case', isMatch, 1, 0.25] : 1;
 
-        // Scale radius up by 1.15 (15%) to accommodate larger image + thicker ring
-        const radiusExpression = ['*', baseRadius, 1.15];
-
-        // 1. The colored ring (Background Circle)
         this.map.addLayer({
             id: 'points-circles', type: 'circle', source: 'points',
             layout: { 'circle-sort-key': ['coalesce', ['get', 'likes'], 0] },
             paint: {
                 'circle-radius': radiusExpression,
-                'circle-color': this._generateColorScale(labels),
-                'circle-opacity': 1,
+                'circle-color': colorExpression,
+                'circle-opacity': opacityExpression,
             }
         }, 'point-labels');
 
-        // 2. The Profile Picture (Symbol Layer)
-        // Image texture size is 64px.
-        // Target Radius = Circle Radius - 4px (for the thicker ring).
-        // Scale = (Radius - 4) * 2 / 64 = (Radius - 4) / 32.
-        const iconSizeExpression = ['max', 0, ['/', ['-', radiusExpression, 4], 32]];
-
-        this.map.addLayer({
-            id: 'points-icons', type: 'symbol', source: 'points',
-            layout: {
-                'icon-image': ['get', 'author'],
-                'icon-size': iconSizeExpression,
-                'icon-allow-overlap': true,
-                'icon-ignore-placement': true,
-                'symbol-sort-key': ['coalesce', ['get', 'likes'], 0]
-            },
-            paint: {
-                'icon-opacity': 1
-            }
-        }, 'point-labels'); // Place below labels but above circles
-
         if (this.map.getLayer('point-labels')) {
             this.map.setLayoutProperty('point-labels', 'visibility', areLabelsVisible ? 'visible' : 'none');
-        }
-
-        if (customizations && labelToCustIdMap) {
-            this._updateClusterNameLayer(twoDimCoords, labels, customizations, labelToCustIdMap);
-        } else {
-            const source = this.map.getSource('cluster-names');
-            if (source) source.setData({ type: 'FeatureCollection', features: [] });
+            // Push the text label out past the circle radius, with a small gap.
+            // text-radial-offset is in ems, and point-labels' text-size is 12px.
+            this.map.setLayoutProperty('point-labels', 'text-radial-offset', ['/', ['+', radiusExpression, 4], 12]);
+            this.map.setPaintProperty('point-labels', 'text-opacity', opacityExpression);
         }
 
         if (shouldFitBounds) {
@@ -371,39 +241,9 @@ export class EmbeddingVisualizer {
         }
     }
 
-    updateQueryPoint(text, coords) {
-        if (!this.map.isStyleLoaded()) {
-            this.map.once('load', () => this.updateQueryPoint(text, coords));
-            return;
-        }
-        const source = this.map.getSource('query-point');
-        if (!source) return;
-        if (!text || !coords) {
-            source.setData({ type: 'FeatureCollection', features: [] });
-            return;
-        }
-        source.setData({
-            type: "FeatureCollection", features: [{
-                type: "Feature", geometry: { type: "Point", coordinates: [coords[0], coords[1]] }, properties: { text }
-            }]
-        });
-
-    }
-
-    focusOnLocation(coords) {
-        if (!this.map.isStyleLoaded() || !coords) return;
-        this.map.flyTo({
-            center: [coords[0], coords[1]],
-            zoom: 6.5,
-            speed: 2.5,
-            curve: 1,
-            essential: true
-        });
-    }
-
     highlightPoint(coords) {
-        if (!this.map.isStyleLoaded()) {
-            this.map.once('load', () => this.highlightPoint(coords));
+        if (!this._loaded) {
+            this._ready.then(() => this.highlightPoint(coords));
             return;
         }
         const source = this.map.getSource('highlight-point');

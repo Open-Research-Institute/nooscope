@@ -20,50 +20,46 @@
                     </h1>
                 </header>
                 
-                <div id="version-notification-area"></div>
                 <div id="visualization-title-area" class="relative -mt-2"></div>
                 <div id="source-info" class="text-sm text-slate-700"></div>
                 
                 <div class="space-y-4">
-                    <div class="control-group">
-                        <label for="min-cluster-size" class="block text-sm font-medium text-slate-700 mb-1">Minimum Cluster Size</label>
-                        <input id="min-cluster-size" type="number" min="1" class="w-full px-3 py-2 bg-white border border-slate-300 shadow-sm focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition"/>
-                    </div>
-                    <div class="grid grid-cols-2 gap-3">
-                        <button id="recluster-button" class="w-full inline-flex items-center justify-center px-4 py-2 bg-sky-600 text-white font-semibold rounded-md shadow-sm hover:bg-sky-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-500 transition-colors">Update Clusters</button>
-                        <button id="toggle-labels-button" class="w-full inline-flex items-center justify-center px-4 py-2 bg-white border border-slate-300 rounded-md font-semibold text-slate-700 hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-500 transition-colors">Toggle Text</button>
-                    </div>
+                    <button id="toggle-labels-button" class="w-full inline-flex items-center justify-center px-4 py-2 bg-white border border-slate-300 rounded-md font-semibold text-slate-700 hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-500 transition-colors">Toggle Text</button>
                 </div>
                  <div id="status-area"></div>
             </div>
 
-            <!-- Cluster Manager List -->
+            <!-- Source Manager List -->
             <div class="flex-1 overflow-y-auto px-6 border-t border-slate-200">
                 <div id="cluster-manager" class="py-6">
-                    <label class="block text-sm font-semibold text-slate-800 mb-3">Clusters</label>
+                    <label class="block text-sm font-semibold text-slate-800 mb-3">Sources</label>
                     <div id="cluster-list-container" class="space-y-1"></div>
                 </div>
             </div>
 
             <div id="vertical-resizer" class="h-1.5 cursor-row-resize shrink-0 bg-slate-200 hover:bg-sky-400 transition-colors"></div>
 
-            <!-- Query Container with Locate Button -->
+            <!-- Search -->
             <div id="query-container" class="shrink-0 p-6 flex flex-col" style="height: 10rem;">
-                <label for="query-input" class="block text-sm font-medium text-slate-700 mb-1">Find Your Own Text</label>
-                <div class="relative w-full flex-1 flex flex-col">
-                    <textarea id="query-input" placeholder="Type or paste text to see where it lands on the map..." class="w-full h-full px-3 py-2 pr-10 bg-white border border-slate-300 shadow-sm focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition placeholder:text-slate-400 resize-none rounded-lg"></textarea>
-                    
-                    <button id="focus-query-btn" class="absolute bottom-3 right-3 p-1.5 rounded-md text-slate-400 hover:text-sky-600 hover:bg-slate-100 transition-all opacity-0 pointer-events-none disabled:opacity-0" title="Center map on this text">
-                        <span class="material-symbols-outlined text-xl">my_location</span>
-                    </button>
-                </div>
+                <label for="query-input" class="block text-sm font-medium text-slate-700 mb-1">Search</label>
+                <textarea id="query-input" placeholder="Filter by text or author..." class="w-full h-full px-3 py-2 bg-white border border-slate-300 shadow-sm focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition placeholder:text-slate-400 resize-none rounded-lg"></textarea>
             </div>
         </aside>
 
         <!-- Visualization Panel (Right) -->
         <main class="visualization-panel flex-1 flex flex-col bg-slate-100 relative">
-            <div id="visualization-container" class="flex-1 relative min-h-0"></div>
-            
+            <div id="visualization-container" class="flex-1 relative min-h-0">
+                <!-- Shown until a visualization file is loaded -->
+                <div id="empty-state" class="absolute inset-0 flex items-center justify-center z-20 bg-slate-100">
+                    <div class="text-center max-w-md px-6">
+                        <h2 class="text-xl font-semibold text-slate-800 mb-2">Load a visualization</h2>
+                        <p class="text-sm text-slate-500 mb-4">Drop in a visualization file here, or choose one — the JSON produced by <code class="bg-slate-200 px-1 rounded">node scripts/pipeline.mjs</code>.</p>
+                        <label for="load-file-input" class="inline-flex items-center px-4 py-2 bg-sky-600 text-white font-semibold rounded-md shadow-sm hover:bg-sky-700 cursor-pointer transition-colors">Choose File</label>
+                        <input type="file" id="load-file-input" accept=".json" class="hidden" />
+                    </div>
+                </div>
+            </div>
+
             <!-- Timeline Controls -->
             <div id="timeline-controls" class="bg-white/95 border-t border-slate-200 px-4 py-2 shrink-0 hidden select-none">
                 <div class="flex justify-between text-xs font-semibold text-slate-500 mb-1">
@@ -90,7 +86,6 @@
         </main>
 
     </div>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
     <script type="module" src="./src/main.js"></script>
 </body>
 </html>

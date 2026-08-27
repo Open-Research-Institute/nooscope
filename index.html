@@ -11,7 +11,7 @@
 </head>
 <body class="bg-slate-100 text-slate-900 font-sans antialiased">
     <div class="container mx-auto px-4 py-8 sm:py-12 max-w-4xl">
-        
+
         <header class="text-center mb-10 sm:mb-12">
             <h1 class="text-4xl sm:text-5xl font-bold text-sky-600 tracking-tight">Noöscope</h1>
             <p class="mt-3 text-lg text-slate-600 max-w-2xl mx-auto">See the hidden groups in any Twitter/X post's replies, profile, or timeline.</p>
@@ -23,440 +23,40 @@
             </div>
         </header>
 
-        <button id="toggle-instructions-btn" class="mx-auto mb-8 flex items-center text-sm font-semibold text-sky-600 hover:text-sky-700" style="display: none;">
-            Show Instructions
-            <span class="material-symbols-outlined text-base ml-1">expand_more</span>
-        </button>
-
-        <div id="instructions-content" class="mb-10 sm:mb-12" style="display: none;">
-            <div class="bg-white border border-slate-200 rounded-lg shadow-sm p-6 sm:p-8">
-                <div class="text-center">
-                    <h2 class="text-2xl font-bold text-slate-800">Get Started</h2>
-                    <p class="mt-2 text-slate-600">Drag this button to your browser's bookmarks bar.</p>
-                    <a id="bookmarklet" href="" class="inline-block mt-4 px-6 py-3 bg-sky-600 text-white font-bold rounded-lg shadow-md hover:bg-sky-700 transition-all cursor-move">Postscope it!</a>
-                </div>
-                <div class="mt-8 text-slate-700">
-                    <ol class="list-decimal list-inside space-y-3">
-                        <li><strong>Drag the 'Postscope it!' button</strong> to your bookmarks bar.</li>
-                        <li>Navigate to an X (Twitter) post, a user profile, your home timeline, or another supported page.</li>
-                        <li>Click the 'Postscope it!' bookmarklet you just saved.</li>
-                        <li>The page will scroll to collect posts. Click "Stop & Visualize" when ready.</li>
-                        <li>Your analysis will appear on a new page.</li>
-                    </ol>
-                </div>
-            </div>
-        </div>
-
         <div class="space-y-6">
-            <!-- Global Controls for Import/Export -->
-            <div id="global-controls" class="flex flex-wrap items-center justify-between gap-4 p-4 bg-white border border-slate-200 rounded-lg shadow-sm">
-                 <div class="flex items-center gap-2">
-                    <label for="import-file-input" class="inline-flex items-center px-4 py-2 bg-white border border-slate-300 rounded-md text-sm font-medium text-slate-700 hover:bg-slate-50 cursor-pointer transition-colors">Import File</label>
-                    <button id="export-history-btn" class="inline-flex items-center px-4 py-2 bg-white border border-slate-300 rounded-md text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors">Export All</button>
-                    <input type="file" id="import-file-input" accept=".json" class="hidden" />
+            <!-- Step 1: Scrape -->
+            <div class="bg-white border border-slate-200 rounded-lg shadow-sm p-6 sm:p-8">
+                <h2 class="text-xl font-bold text-slate-800">1. Scrape</h2>
+                <div class="text-center mt-4">
+                    <p class="text-slate-600">Drag this button to your browser's bookmarks bar.</p>
+                    <a id="bookmarklet" href="" class="inline-block mt-4 px-6 py-3 bg-sky-600 text-white font-bold rounded-lg shadow-md hover:bg-sky-700 transition-all cursor-move">🦠 Noöscope Scraper</a>
                 </div>
-                <p class="text-sm text-slate-500 hidden sm:block">You can also drag & drop a .json file anywhere on the page.</p>
-                <button id="clear-history-btn" class="inline-flex items-center px-4 py-2 bg-red-100/50 border border-red-200 rounded-md text-sm font-medium text-red-700 hover:bg-red-100 hover:border-red-300 transition-colors">Clear All</button>
+                <ol class="mt-8 list-decimal list-inside space-y-3 text-slate-700">
+                    <li><strong>Drag the '🦠 Noöscope Scraper' button</strong> to your bookmarks bar.</li>
+                    <li>Navigate to an X (Twitter) post, a user profile, your home timeline, or another supported page.</li>
+                    <li>Click the '🦠 Noöscope Scraper' you just saved.</li>
+                    <li>The page will scroll to collect posts. Click "Stop" when ready, and save the downloaded JSON file.</li>
+                </ol>
+                <p class="mt-4 text-slate-600">For Bluesky, use the <a href="bluesky.html" class="text-sky-600 hover:text-sky-700 font-medium">Bluesky importer</a> instead — paste a thread URL to pull its full reply thread.</p>
             </div>
 
-            <!-- Search Container -->
-            <div id="search-container" class="relative" style="display: none;">
-                <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
-                    <span class="material-symbols-outlined text-slate-400">search</span>
-                </div>
-                <input type="search" id="search-history-input" placeholder="Search visualizations by name, author, or content..." class="block w-full border border-slate-300 bg-white py-3 pl-12 pr-4 text-slate-900 shadow-sm transition placeholder:text-slate-400 focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500 text-base">
+            <!-- Step 2: Embed + project -->
+            <div class="bg-white border border-slate-200 rounded-lg shadow-sm p-6 sm:p-8">
+                <h2 class="text-xl font-bold text-slate-800">2. Embed &amp; project</h2>
+                <p class="mt-2 text-slate-600">Turn one or more scraped files into a single visualization file, from the terminal:</p>
+                <pre class="mt-4 bg-slate-100 border border-slate-200 rounded-lg p-4 text-sm overflow-x-auto"><code>export OPENAI_API_KEY=sk-...
+node scripts/pipeline.mjs your-scrape-1.json your-scrape-2.json -o out.json</code></pre>
+                <p class="mt-2 text-sm text-slate-500">Multiple files are embedded together and plotted in one shared map, colored by source. See the repo README for the full pipeline (embedding and projection can also be run as separate steps).</p>
             </div>
-            
-            <!-- History Container -->
-            <div id="history-container" class="bg-transparent">
-                <ul id="history-list" class="space-y-3">
-                    <!-- History items will be injected here by script -->
-                </ul>
-                <div id="pagination-controls" class="flex justify-between items-center mt-8">
-                    <div id="pagination-prev-container">
-                        <!-- Prev button will be injected here -->
-                    </div>
-                    <div id="pagination-pages-container" class="flex-grow flex justify-center items-center flex-wrap gap-2 min-w-0 px-4">
-                        <!-- Page numbers will be injected here -->
-                    </div>
-                    <div id="pagination-next-container">
-                        <!-- Next button will be injected here -->
-                    </div>
-                </div>
+
+            <!-- Step 3: Visualize -->
+            <div class="bg-white border border-slate-200 rounded-lg shadow-sm p-6 sm:p-8">
+                <h2 class="text-xl font-bold text-slate-800">3. Visualize</h2>
+                <p class="mt-2 text-slate-600">Open the <a href="viewer.html" class="text-sky-600 hover:text-sky-700 font-medium">viewer</a> and drop in the file from step 2 — no server, no account, no database. Just the file.</p>
             </div>
         </div>
     </div>
 
-    <!-- Drag & Drop Overlay -->
-    <div id="drag-overlay" class="hidden fixed inset-0 bg-sky-500/30 z-50 transition-opacity duration-300 opacity-0">
-        <div class="flex items-center justify-center h-full w-full p-4 pointer-events-none">
-            <div class="p-10 bg-white/95 rounded-2xl shadow-2xl border-4 border-dashed border-sky-500 text-center">
-                <p class="text-2xl font-bold text-sky-600">Drop your .json file here</p>
-            </div>
-        </div>
-    </div>
-
-    <template id="history-item-template">
-        <li class="history-item flex bg-white rounded-lg shadow-sm border border-slate-200 hover:shadow-md hover:border-sky-300 transition-all duration-200 overflow-hidden">
-            <a href="#" class="history-item-main flex-grow p-4 sm:p-5 block text-slate-800 hover:bg-slate-50/50 transition-colors">
-                <h3 class="font-semibold text-slate-800"></h3>
-                <p class="text-sm text-slate-500 mt-1"></p>
-            </a>
-            <div class="history-item-buttons flex items-center p-2 sm:p-3 border-l border-slate-200 space-x-1">
-                <button class="history-item-btn edit-btn" title="Edit name">
-                    <span class="material-symbols-outlined">edit</span>
-                </button>
-                <button class="history-item-btn export-item-btn" title="Export this visualization">
-                    <span class="material-symbols-outlined">upload</span>
-                </button>
-                <button class="history-item-btn delete-btn" title="Delete this visualization">
-                    <span class="material-symbols-outlined">delete</span>
-                </button>
-            </div>
-        </li>
-    </template>
-    
-    <script>
-        // --- BOOKMARKLET AND SCRAPER SCRIPT ---
-        (function() {
-            const appUrl = new URL('viewer.html', window.location.href).href;
-            const scraperFunction = async (targetUrl) => {
-                const SCRIPT_VERSION = 5;
-                const wait = (ms) => new Promise(resolve => setTimeout(resolve, ms));
-
-                if (window.location.hostname === 'x.com' && window.location.pathname === '/') {
-                    console.log('Postscope: on x.com, waiting for redirect to /home...');
-                    const startTime = Date.now();
-                    while (window.location.pathname === '/' && (Date.now() - startTime) < 5000) {
-                        await wait(100);
-                    }
-                    if (window.location.pathname === '/') {
-                        alert('Postscope: Timed out waiting for x.com to redirect. Please try again once you are on your home timeline.');
-                        return;
-                    }
-                }
-                
-                const waitForElement = async (selector, context = document, timeout = 10000) => {
-                    const start = Date.now();
-                    while (Date.now() - start < timeout) {
-                        const el = context.querySelector(selector);
-                        if (el) return el;
-                        await wait(200);
-                    }
-                    return null;
-                };
-                const getPageType = (path) => {
-                    if (path.startsWith('/search')) {
-                        const params = new URLSearchParams(window.location.search);
-                        return { type: 'search', query: params.get('q') || '', filter: params.get('f') };
-                    }
-                    if (path.includes('/status/')) return { type: 'post' };
-                    if (path.endsWith('/home')) return { type: 'home' };
-                    if (path.startsWith('/explore')) return { type: 'explore' };
-                    if (path === '/i/bookmarks') return { type: 'bookmarks' };
-                    if (path.startsWith('/i/communities/')) return { type: 'communities', id: path.split('/')[3] };
-                    if (path.startsWith('/i/lists/')) return { type: 'list', id: path.split('/')[3] };
-                    const userCommunitiesMatch = path.match(/^\/([a-zA-Z0-9_]+)\/communities(\/explore)?$/);
-                    if (userCommunitiesMatch) {
-                        return { type: userCommunitiesMatch[2] ? 'profile_communities_explore' : 'profile_communities', handle: userCommunitiesMatch[1] };
-                    }
-                    const profileMatch = path.match(/^\/([a-zA-Z0-9_]+)(\/(with_replies|highlights|likes|lists))?$/);
-                    if (profileMatch) {
-                        const reservedPaths = ['home', 'explore', 'notifications', 'messages', 'i', 'settings', 'communities'];
-                        if (!reservedPaths.includes(profileMatch[1])) {
-                            if (profileMatch[3] === 'lists') {
-                                return { type: 'list_hub', handle: profileMatch[1] };
-                            }
-                            return { type: 'profile', handle: profileMatch[1], subpage: profileMatch[3] || 'tweets' };
-                        }
-                    }
-                    return { type: 'unknown' };
-                };
-                let path = window.location.pathname;
-                if (path.length > 1 && path.endsWith('/')) { path = path.slice(0, -1); }
-                const pageInfo = getPageType(path);
-
-                if (pageInfo.type === 'list_hub') {
-                    alert("Postscope works on individual lists. Please navigate into one of the lists on this page and then click the bookmarklet again.");
-                    return;
-                }
-
-                const supportedPages = ['post', 'home', 'explore', 'bookmarks', 'communities', 'list', 'profile', 'profile_communities', 'profile_communities_explore', 'search'];
-                if (!supportedPages.includes(pageInfo.type)) {
-                    alert('Postscope works on posts, profiles, timelines, searches, lists, and communities. Please navigate to a supported page and try again.');
-                    return;
-                }
-                const mainContentArea = await waitForElement('main[role="main"]');
-                if (!mainContentArea) {
-                    alert("Could not find Twitter/X content on this page. Please wait for the page to load and try again.");
-                    return;
-                }
-                let userCancelled = false;
-                let isPausedForRetry = false;
-                let preOpenedWindow = null; 
-                
-                const updateOverlay = (state, retryCallback) => {
-                    const statusEl = document.getElementById('postscope-status');
-                    const overlayContentDiv = statusEl?.parentElement;
-                    if (!overlayContentDiv) return;
-                    
-                    const oldRetryBtn = document.getElementById('postscope-retry-btn');
-                    if (oldRetryBtn) oldRetryBtn.remove();
-                    
-                    if (state === 'retry') {
-                        statusEl.innerHTML = 'Network issue detected.<br>What would you like to do?';
-                        const retryBtn = document.createElement('button');
-                        retryBtn.id = 'postscope-retry-btn';
-                        retryBtn.textContent = 'Retry Loading';
-                        retryBtn.style.cssText = 'padding: 10px 20px; font-size: 1rem; color: #333; background: #cceeff; border: none; border-radius: 5px; cursor: pointer; margin-right: 10px;';
-                        retryBtn.onclick = retryCallback;
-                        overlayContentDiv.insertBefore(retryBtn, document.getElementById('postscope-stop-btn'));
-                    } else {
-                        statusEl.innerHTML = 'Postscope is collecting posts...';
-                    }
-                };
-                const createOverlay = () => {
-                    const overlay = document.createElement('div');
-                    overlay.id = 'postscope-overlay';
-                    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background-color:rgba(0,0,0,0.7);z-index:99999;display:flex;justify-content:center;align-items:center;color:white;font-family:sans-serif;';
-                    // Added IDs for dynamic updating
-                    // NOTE: Initial button style is WHITE (#fff) with DARK TEXT (#333) as requested
-                    overlay.innerHTML = `<div style="text-align: center; padding: 20px 40px; background: #222; border-radius: 10px;"><h2 id="postscope-status">Postscope is collecting posts...</h2><p id="postscope-hint">Please keep this tab open and in view.</p><p id="postscope-count" style="font-size: 1.2em; font-weight: bold; margin: 15px 0;">Found 0 posts</p><button id="postscope-stop-btn" style="padding: 10px 20px; font-size: 1rem; color: #333; background: #fff; border: none; border-radius: 5px; cursor: pointer; margin-top: 10px;">Stop & Visualize</button></div>`;
-                    document.body.appendChild(overlay);
-                    
-                    document.getElementById('postscope-stop-btn').onclick = () => {
-                        document.getElementById('postscope-status').textContent = 'Finalizing...';
-                        userCancelled = true;
-                        // Open window IMMEDIATELY on manual click
-                        preOpenedWindow = window.open(targetUrl, '_blank');
-                    };
-                    return overlay;
-                };
-                const updateStatus = (count) => {
-                    const countEl = document.getElementById('postscope-count');
-                    if (countEl) countEl.textContent = `Found ${count} posts`;
-                };
-                const context = { version: SCRIPT_VERSION, type: pageInfo.type, name: '', author: '', text: '', subpage: '', query: '', filter: '' };
-                let originalPosterHandle = null;
-                let filterByProfileOwner = false;
-                if (pageInfo.type === 'list' || pageInfo.type === 'communities') {
-                    const headerEl = await waitForElement('h2[role="heading"] span', mainContentArea);
-                    if (headerEl) {
-                        context.name = headerEl.innerText.trim();
-                    } else if (pageInfo.type === 'list') {
-                        const titleMatch = document.title.match(/^(.+?)\s*(\(@\w+\))?\s*\/\s*X$/);
-                        if (titleMatch && titleMatch[1]) context.name = titleMatch[1].trim();
-                    }
-                } else if (pageInfo.type === 'post') {
-                    const mainPostArticle = await waitForElement('article[data-testid="tweet"]', mainContentArea);
-                    if (!mainPostArticle) { alert("Could not find the main post. Please wait for it to load and try again."); return; }
-                    originalPosterHandle = mainPostArticle.querySelector('div[data-testid="User-Name"] a[href^="/"]')?.href.split('/').pop() || 'unknown';
-                    context.author = originalPosterHandle;
-                    context.text = mainPostArticle.querySelector('[data-testid="tweetText"]')?.innerText.substring(0, 100) + '...' || 'Unknown Tweet';
-                } else if (pageInfo.type === 'profile') {
-                    context.author = pageInfo.handle;
-                    context.subpage = pageInfo.subpage;
-                    if (pageInfo.subpage !== 'likes') filterByProfileOwner = true;
-                } else if (pageInfo.type === 'profile_communities' || pageInfo.type === 'profile_communities_explore') {
-                    context.author = pageInfo.handle;
-                } else if (pageInfo.type === 'search') {
-                    context.query = pageInfo.query;
-                    context.filter = pageInfo.filter;
-                }
-                const overlay = createOverlay();
-                
-                const visibleSpinners = new Set();
-                const intersectionObserver = new IntersectionObserver((entries) => {
-                    entries.forEach(entry => {
-                        if (entry.isIntersecting) visibleSpinners.add(entry.target);
-                        else visibleSpinners.delete(entry.target);
-                    });
-                });
-                const mutationObserver = new MutationObserver((mutations) => {
-                    for (const mutation of mutations) {
-                        for (const node of mutation.addedNodes) {
-                            if (node.nodeType === 1) {
-                                if (node.matches('[role="progressbar"]')) intersectionObserver.observe(node);
-                                node.querySelectorAll('[role="progressbar"]').forEach(spinner => intersectionObserver.observe(spinner));
-                            }
-                        }
-                    }
-                });
-                document.querySelectorAll('[role="progressbar"]').forEach(spinner => intersectionObserver.observe(spinner));
-                mutationObserver.observe(document.body, { childList: true, subtree: true });
-
-                let previousHeight = -1;
-                let previousTweetCount = -1;
-                let stuckCount = 0;
-                
-                const foundTweets = new Map();
-                
-                console.log('Postscope: Scrolling to top to begin collection.');
-                window.scrollTo(0, 0);
-                await wait(500);
-
-                while (!userCancelled) {
-                    if (isPausedForRetry) {
-                        await wait(200);
-                        continue;
-                    }
-                    const cells = mainContentArea.querySelectorAll('div[data-testid="cellInnerDiv"]');
-                    for (const cell of cells) {
-                        const article = cell.querySelector('article[data-testid="tweet"]');
-                        if (!article) continue;
-                        
-                        const adMarker = Array.from(article.querySelectorAll('span')).find(span => span.innerText.trim() === 'Ad');
-						if (adMarker) { continue; }
-						
-						const tweetTextElement = article.querySelector('[data-testid="tweetText"]');
-						const authorHandle = article.querySelector('div[data-testid="User-Name"] a[href^="/"]')?.href.split('/').pop();
-						const likeButton = article.querySelector('[data-testid="like"]') || article.querySelector('[data-testid="unlike"]');
-						const likeAriaLabel = likeButton?.getAttribute('aria-label') || '0';
-						const likeMatch = likeAriaLabel.match(/(\d[\d,]*)/);
-						const likes = likeMatch ? parseInt(likeMatch[1].replace(/,/g, ''), 10) : 0;
-						const timeElement = article.querySelector('time[datetime]');
-						const postTimestamp = timeElement ? timeElement.getAttribute('datetime') : '';
-
-                        // Capture Profile Picture
-                        const avatarImg = article.querySelector('div[data-testid="Tweet-User-Avatar"] img');
-                        const profilePic = avatarImg ? avatarImg.src : '';
-
-                        let postUrl = '';
-                        if (timeElement) {
-                            const postLinkElement = timeElement.closest('a');
-                            if (postLinkElement) postUrl = postLinkElement.href;
-                        }
-                        if (!postUrl) {
-                            const statusLinks = Array.from(article.querySelectorAll('a[href*="/status/"]'));
-                            const matchingLink = statusLinks.find(l => l.href.includes(`/${authorHandle}/status/`));
-                            if(matchingLink) postUrl = matchingLink.href;
-                        }
-
-                        if (!tweetTextElement || !authorHandle) continue;
-                        if (pageInfo.type === 'post' && authorHandle === originalPosterHandle) continue;
-                        if (filterByProfileOwner && authorHandle !== pageInfo.handle) continue;
-                        
-                        const text = tweetTextElement.innerText;
-                        const uniqueKey = postUrl || (authorHandle + text.substring(0,50) + postTimestamp);
-                        
-                        if (!foundTweets.has(uniqueKey)) {
-                            foundTweets.set(uniqueKey, { author: authorHandle, text: text, likes: likes, timestamp: postTimestamp, url: postUrl, profilePic: profilePic });
-                            updateStatus(foundTweets.size);
-                        }
-                    }
-                    
-                    const retryButtonOnPage = Array.from(document.querySelectorAll('[role="button"]')).find(el => el.innerText.trim() === 'Retry');
-
-                    if (retryButtonOnPage) {
-                        isPausedForRetry = true;
-                        updateOverlay('retry', () => {
-                            if (retryButtonOnPage) retryButtonOnPage.click();
-                            updateOverlay('collecting');
-                            stuckCount = 0;
-                            isPausedForRetry = false;
-                        });
-                    }
-                    
-                    window.scrollTo(0, document.body.scrollHeight);
-                    await wait(200);
-
-                    const currentHeight = document.body.scrollHeight;
-                    const currentTweetCount = foundTweets.size;
-                    const isLoading = visibleSpinners.size > 0 && window.scrollY > 100;
-
-                    if (isLoading) {
-                        stuckCount = 0;
-                    } else if (previousHeight !== -1 && currentHeight <= previousHeight && currentTweetCount === previousTweetCount) {
-                        stuckCount++;
-                    } else {
-                        stuckCount = 0;
-                    }
-                    if (stuckCount >= 25) {
-                        userCancelled = true;
-                    }
-                    previousHeight = currentHeight;
-                    previousTweetCount = currentTweetCount;
-                }
-
-                intersectionObserver.disconnect();
-                mutationObserver.disconnect();
-
-                if (foundTweets.size > 0) {
-                    const status = document.getElementById('postscope-status');
-                    const hint = document.getElementById('postscope-hint');
-                    const stopBtn = document.getElementById('postscope-stop-btn');
-                    
-                    // UI UPDATES FOR SUCCESS STATE
-                    hint.style.display = 'none'; // Hide the "keep open" text
-                    status.textContent = 'Collection done.';
-                    
-                    let csvContent = 'author,text,likes,timestamp,url,profilePic\n';
-                    foundTweets.forEach(t => {
-                         const sanitizedText = t.text.replace(/(\r\n|\n|\r)/gm, " ").replace(/"/g, '""');
-                         csvContent += `"${t.author}","${sanitizedText}","${t.likes}","${t.timestamp}","${t.url}","${t.profilePic||''}"\n`;
-                    });
-
-                    const sendDataToWindow = (targetWin) => {
-                        const messageHandler = (event) => {
-                            if (event.data && event.data.type === 'postscope-ready') {
-                                status.textContent = 'Transferring data...';
-                                targetWin.postMessage({
-                                    type: 'postscope-data',
-                                    csvData: csvContent,
-                                    context: context
-                                }, '*'); 
-                                
-                                window.removeEventListener('message', messageHandler);
-                                status.textContent = 'Done!';
-                                setTimeout(() => document.getElementById('postscope-overlay').remove(), 2000);
-                            }
-                        };
-                        window.addEventListener('message', messageHandler);
-                        
-                        setTimeout(() => {
-                             targetWin.postMessage({
-                                    type: 'postscope-data',
-                                    csvData: csvContent,
-                                    context: context
-                                }, '*');
-                             status.textContent = 'Data sent.';
-                             setTimeout(() => document.getElementById('postscope-overlay').remove(), 2000);
-                        }, 2500);
-                    };
-
-                    // Logic: If user manually clicked, use that window. Else ask for click.
-                    if (preOpenedWindow && !preOpenedWindow.closed) {
-                         status.textContent = 'Opening Postscope...';
-                         sendDataToWindow(preOpenedWindow);
-                    } else {
-                        // Change button to BLUE (#0ea5e9) and WHITE text as requested for the automatic stop phase
-                        stopBtn.textContent = 'Open Visualization';
-                        stopBtn.style.backgroundColor = '#0ea5e9'; 
-                        stopBtn.style.color = '#ffffff';
-
-                        stopBtn.onclick = () => {
-                            status.textContent = 'Opening Postscope...';
-                            const viewerWindow = window.open(targetUrl, '_blank');
-                            
-                            if (!viewerWindow) {
-                                alert('Pop-up blocked! Please allow pop-ups for Postscope.');
-                                status.textContent = 'Pop-up blocked.';
-                                return;
-                            }
-                            sendDataToWindow(viewerWindow);
-                        };
-                    }
-
-                } else {
-                    document.getElementById('postscope-overlay').remove();
-                    alert('No posts were collected. Please try again on a page with tweets.');
-                }
-            };
-            const minifiedScraperString = scraperFunction.toString().replace(/\s*\/\/.*/g, '').replace(/\s+/g, ' ');
-            const codeString = `try{(${minifiedScraperString})('${appUrl}')}catch(e){console.error(e);alert('An error occurred: '+e.message)}`;
-            document.getElementById('bookmarklet').href = `javascript:${encodeURIComponent(codeString)}`;
-        })();
-    </script>
-    <script type="module" src="/src/index-main.js"></script>
+    <script type="module" src="/src/bookmarklet.js"></script>
 </body>
 </html>
