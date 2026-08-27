@@ -6,4 +6,23 @@
 // href can run, since there's no module loader available once it's injected into x.com's page.
 import scraperCode from './generated/twitter-scraper.js?raw';
 
-document.getElementById('bookmarklet').href = `javascript:${encodeURIComponent(scraperCode)}`;
+// One bookmarklet, dispatched by host: x.com/twitter.com can be scraped directly from the
+// DOM, but bsky.app has nothing to scrape from — the Bluesky collector instead fetches the
+// thread via API from bluesky.html (src/collectors/bluesky/main.js), so on bsky.app this
+// just hands the current URL to that page via ?import=.
+//
+// Resolved here — while this script runs on our own page — rather than from `location`
+// inside the injected code below, where `location` would resolve to whatever page the
+// bookmarklet was clicked on (x.com/bsky.app), not this app. Resolving relative to our
+// own URL (matching the plain "bluesky.html" link elsewhere on this page, and the
+// `base: './'` in vite.config.js) means it keeps working under a sub-path deployment,
+// not just domain root, with no config needed — localhost:PORT in dev, the real
+// domain (and path) once deployed.
+const blueskyImportUrl = new URL('bluesky.html', window.location.href).href;
+const dispatchCode = `if (location.hostname.indexOf('bsky.app') !== -1) {
+    location.href = '${blueskyImportUrl}?import=' + encodeURIComponent(location.href);
+} else {
+    ${scraperCode}
+}`;
+
+document.getElementById('bookmarklet').href = `javascript:${encodeURIComponent(dispatchCode)}`;

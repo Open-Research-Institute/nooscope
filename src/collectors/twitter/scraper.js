@@ -298,7 +298,10 @@ import { createContext, createMessage } from '../../shared/message-format.js';
                 });
             }
 
-            window.scrollTo(0, document.body.scrollHeight);
+            // One viewport at a time, not straight to scrollHeight: X virtualizes the timeline,
+            // so a big jump (e.g. scrollHeight is already tall because the page was scrolled
+            // before the scraper started) unmounts the cells in between and they're never collected.
+            window.scrollTo(0, window.scrollY + window.innerHeight);
             await wait(200);
 
             const currentHeight = document.body.scrollHeight;
