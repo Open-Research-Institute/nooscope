@@ -14,8 +14,11 @@ window.addEventListener('load', () => {
     // A real <a href download> (not a click handler) so right-click -> "Save Link As..." works too.
     const offerDownload = (exportData, sourceUrl) => {
         const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+        const rootText = exportData.messages[0]?.text || '';
+        const wordsSlug = rootText ? slug(rootText).split('-').filter(Boolean).slice(0, 2).join('-') : '';
+        const count = exportData.messages.length;
         downloadLink.href = URL.createObjectURL(blob);
-        downloadLink.download = `bluesky-${slug(sourceUrl)}-${Date.now()}.json`;
+        downloadLink.download = `bluesky-${slug(sourceUrl)}-${wordsSlug ? wordsSlug + '-' : ''}${count}.json`;
         downloadLink.classList.remove('hidden');
     };
 

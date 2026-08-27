@@ -348,7 +348,11 @@ import { createContext, createMessage } from '../../shared/message-format.js';
                 }
                 const label = source.author ? ('@' + source.author) : (source.name || source.type || 'export');
                 const slug = label.toString().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'export';
-                const filename = `twitter-${slug}-${Date.now()}.json`;
+                const wordsSlug = source.text
+                    ? source.text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '').split('-').filter(Boolean).slice(0, 2).join('-')
+                    : '';
+                const count = exportData.messages.length;
+                const filename = `twitter-${slug}-${wordsSlug ? wordsSlug + '-' : ''}${count}.json`;
 
                 // Wired from here (same-origin DOM access to targetWin), not via an inline <script> in
                 // the generated document — a blob: URL inherits its creator's CSP, and x.com's blocks

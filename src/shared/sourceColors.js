@@ -3,14 +3,14 @@
 // If there are more sources than colors here, the extras fall back to an evenly
 // spaced hue instead of erroring.
 export const SOURCE_COLOR_PALETTE = [
-    '#ef4444', // red
-    '#22c55e', // green
+    '#ec4899', // pink
+    '#84cc16', // lime
     '#3b82f6', // blue
     '#f59e0b', // amber
     '#a855f7', // purple
     '#06b6d4', // cyan
-    '#ec4899', // pink
-    '#84cc16', // lime
+    '#ef4444', // red
+    '#22c55e', // green
 ];
 
 export function getColorForSource(label, sourceCount) {
