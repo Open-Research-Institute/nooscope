@@ -20,7 +20,7 @@ import scraperCode from './generated/twitter-scraper.js?raw';
 // domain (and path) once deployed.
 const blueskyImportUrl = new URL('bluesky.html', window.location.href).href;
 const dispatchCode = `if (location.hostname.indexOf('bsky.app') !== -1) {
-    location.href = '${blueskyImportUrl}?import=' + encodeURIComponent(location.href);
+    window.open('${blueskyImportUrl}?import=' + encodeURIComponent(location.href), '_blank');
 } else {
     ${scraperCode}
 }`;

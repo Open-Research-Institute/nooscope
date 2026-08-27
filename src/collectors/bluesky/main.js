@@ -1,4 +1,4 @@
-import { fetchThreadForUrl } from './api.js';
+import { fetchThreadForUrl, parseBlueskyPostUrl } from './api.js';
 import { threadToMessages } from './threadToMessages.js';
 import { createContext } from '../../shared/message-format.js';
 
@@ -17,8 +17,9 @@ window.addEventListener('load', () => {
         const rootText = exportData.messages[0]?.text || '';
         const wordsSlug = rootText ? slug(rootText).split('-').filter(Boolean).slice(0, 2).join('-') : '';
         const count = exportData.messages.length;
+        const handle = parseBlueskyPostUrl(sourceUrl).actor.split('.')[0];
         downloadLink.href = URL.createObjectURL(blob);
-        downloadLink.download = `bluesky-${slug(sourceUrl)}-${wordsSlug ? wordsSlug + '-' : ''}${count}.json`;
+        downloadLink.download = `bluesky-${handle}-${wordsSlug ? wordsSlug + '-' : ''}${count}.json`;
         downloadLink.classList.remove('hidden');
     };
 
