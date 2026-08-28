@@ -36,7 +36,10 @@ export function threadToMessages({ rootId, itemsById }) {
             parent: effectiveParentId,
             metadata: {
                 sourceUrl: itemUrl(item.id),
-                score: item.score ?? undefined,
+                // Only stories carry a score in the HN API — comments have no karma
+                // field at all, so this is 0 (and the dot stays default-sized) for
+                // every message except the root.
+                likes: item.score ?? 0,
                 type: item.type,
                 externalUrl: item.url ?? undefined,
             },
