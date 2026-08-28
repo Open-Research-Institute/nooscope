@@ -2,28 +2,21 @@
 
 Toolkit for visualizing the evolving territories in social media discourse.
 
-1. **Scrape.** Collectors turn a platform (Twitter/X, Bluesky, ...) into the shared
-   message schema. See [docs/spec.md](docs/spec.md).
-   - Twitter: drag the bookmarklet from `index.html` to your bookmarks bar, click it
-     on a post/profile/timeline, and save the downloaded JSON.
-   - Bluesky: open `bluesky.html`, paste a thread URL.
-2. **Embed & project.** Turn one or more scraped files into a single visualization
-   file, from the terminal. Put `OPENAI_API_KEY=sk-...` in a `.env` file at the repo
-   root (already gitignored), or export it in your shell:
+1. **Scrape.** Click the bookmarklet on a post/profile/timeline (Twitter) or paste
+   a thread URL into `bluesky.html` (Bluesky), and save the downloaded JSON into
+   `data/sources/`.
+2. **Run the pipeline.**
    ```
-   node scripts/pipeline.mjs your-scrape-1.json your-scrape-2.json -o out.json
+   node scripts/pipeline.mjs data/sources/scrape-1.json data/sources/scrape-2.json -o data/my-dataset
    ```
-   Embedding (calls OpenAI, cached on disk at `.cache/embeddings.json`) and
-   projection (2D layout, local/no network) are separable if you want to iterate on
-   the layout without re-embedding:
+   This writes `data/my-dataset/output.json`, plus `data/my-dataset/sources.json`
+   recording which sources went in — so later you can re-run the same dataset
+   (e.g. after adding more sources to it) with just:
    ```
-   node scripts/embed.mjs your-scrape-1.json your-scrape-2.json -o embedded.json
-   node scripts/project.mjs embedded.json -o out.json [--method umap]
+   node scripts/pipeline.mjs data/my-dataset
    ```
-   Output shape is documented in [docs/spec.md](docs/spec.md#visualization-output)
-   — it's deliberately generic, so any tool can read it.
-3. **Visualize.** Open `viewer.html`, drop in `out.json`. That's it — the file is
-   the whole artifact; share it, host it, commit it.
+3. **Visualize.** Open `viewer.html`, drag in `data/my-dataset/output.json`.
+   That's it — the file is the whole artifact; share it, host it, commit it.
 
 ## Development
 

@@ -1,6 +1,7 @@
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { getColorForSource } from '../shared/sourceColors.js';
+import { EmojiIconRegistry, extractLeadingEmoji } from './emojiIcons.js';
 
 export class EmbeddingVisualizer {
     constructor({ containerId }) {
@@ -20,6 +21,8 @@ export class EmbeddingVisualizer {
             center: [0, 0],
             zoom: 1
         });
+
+        this._emojiIcons = new EmojiIconRegistry(this.map);
 
         // MapLibre's 'load' event fires exactly once; a listener registered after it already
         // fired never gets called, so render() can't gate on `.once('load', ...)` more than
@@ -47,6 +50,7 @@ export class EmbeddingVisualizer {
                 // than trusting index 0 as an extra safeguard against a grey point
                 // still winning the hover hit-test.
                 this.map.on('mouseenter', 'points-circles', (e) => {
+                    console.log(e)
                     const feature = e.features.find(f => f.properties.match !== false);
                     if (!feature) return;
                     this.map.getCanvas().style.cursor = 'pointer';
@@ -87,7 +91,8 @@ export class EmbeddingVisualizer {
             } catch (e) { /* ignore invalid date */ }
         }
 
-        const avatarHtml = `<div class="popup-avatar-placeholder">${properties.author.charAt(0).toUpperCase()}</div>`;
+        const authorName = properties.author ?? 'Unknown';
+        const avatarHtml = `<div class="popup-avatar-placeholder">${authorName.charAt(0).toUpperCase()}</div>`;
 
         const popupContent = `
             <div class="post-popup-content">
@@ -96,7 +101,7 @@ export class EmbeddingVisualizer {
                         ${avatarHtml}
                     </div>
                     <div class="popup-meta">
-                        <strong class="popup-author">@${properties.author}</strong>
+                        <strong class="popup-author">@${authorName}</strong>
                         ${timestampHtml}
                     </div>
                 </div>
@@ -138,6 +143,9 @@ export class EmbeddingVisualizer {
             type: 'symbol',
             source: 'points',
             minzoom: 3,
+            // Points with an emoji icon (see point-emoji-icons below) already
+            // show what they are — a text label next to the icon is redundant.
+            filter: ['!', ['has', 'emojiIconId']],
             layout: {
                 'text-field': ['get', 'text'],
                 'text-variable-anchor': ['top', 'bottom', 'left', 'right'],
@@ -159,6 +167,21 @@ export class EmbeddingVisualizer {
                 'circle-stroke-width': 4,
                 'circle-stroke-color': '#0ea5e9' // sky-500
             }
+        });
+
+        // Points whose text starts with an emoji (see src/ui/emojiIcons.js)
+        // get that emoji rendered as an icon, on top of their circle — the
+        // `has` filter means points without one are untouched by this layer.
+        this.map.addLayer({
+            id: 'point-emoji-icons',
+            type: 'symbol',
+            source: 'points',
+            filter: ['has', 'emojiIconId'],
+            layout: {
+                'icon-image': ['get', 'emojiIconId'],
+                'icon-allow-overlap': true,
+                'icon-ignore-placement': true,
+            },
         });
     }
 
@@ -195,18 +218,23 @@ export class EmbeddingVisualizer {
         }
 
         const geojson = {
-            type: "FeatureCollection", features: pointsData.map((point, i) => ({
-                type: "Feature", geometry: { type: "Point", coordinates: [twoDimCoords[i][0], twoDimCoords[i][1]] },
-                properties: {
-                    text: point.content,
-                    author: point.author,
-                    timestamp: point.timestamp,
-                    likes: point.likes || 0,
-                    url: point.url,
-                    cluster_label: labels[i],
-                    match: searchRegex ? (searchRegex.test(point.content || '') || searchRegex.test(point.author || '')) : true,
-                }
-            }))
+            type: "FeatureCollection", features: pointsData.map((point, i) => {
+                const emoji = extractLeadingEmoji(point.content);
+                const emojiIconId = emoji ? this._emojiIcons.ensureIcon(emoji) : null;
+                return {
+                    type: "Feature", geometry: { type: "Point", coordinates: [twoDimCoords[i][0], twoDimCoords[i][1]] },
+                    properties: {
+                        text: point.content,
+                        author: point.author,
+                        timestamp: point.timestamp,
+                        likes: point.likes || 0,
+                        url: point.url,
+                        cluster_label: labels[i],
+                        match: searchRegex ? (searchRegex.test(point.content || '') || searchRegex.test(point.author || '')) : true,
+                        ...(emojiIconId ? { emojiIconId } : {}),
+                    }
+                };
+            })
         };
         this.map.getSource('points').setData(geojson);
 
