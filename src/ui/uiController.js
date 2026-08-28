@@ -3,8 +3,8 @@ const truncate = (str, maxLength) => { if (!str || str.length <= maxLength) retu
 import { getColorForSource } from '../shared/sourceColors.js';
 
 export class UIController {
-    constructor({ onSearchChange, onNameChange, onVisibilityChange, onToggleLabels, onTitleChange, getMapInstance, onPostSelect, onTimeRangeChange, onNegativeSpaceToggle }) {
-        this.callbacks = { onSearchChange, onNameChange, onVisibilityChange, onToggleLabels, onTitleChange, onPostSelect, onTimeRangeChange, onNegativeSpaceToggle };
+    constructor({ onSearchChange, onNameChange, onVisibilityChange, onToggleLabels, onTitleChange, getMapInstance, onPostSelect, onTimeRangeChange, onNegativeSpaceToggle, onReorderSource }) {
+        this.callbacks = { onSearchChange, onNameChange, onVisibilityChange, onToggleLabels, onTitleChange, onPostSelect, onTimeRangeChange, onNegativeSpaceToggle, onReorderSource };
 
         this.toggleLabelsButton = document.getElementById('toggle-labels-button');
         this.queryInput = document.getElementById('query-input');
@@ -320,7 +320,7 @@ export class UIController {
         // entirely — the whole point (per the user) is to look at just the
         // mask, not have it competing with the dots underneath.
         const showPoints = this.negativeSpaceLabel === null;
-        visualizer.render(items, coords, labels, appState.getSourceCount(), appState.getArePointLabelsVisible(), shouldFitBounds, appState.getSearchQuery(), appState.getIsSearchCaseSensitive(), showPoints);
+        visualizer.render(items, coords, labels, appState.getSourceCount(), appState.getArePointLabelsVisible(), shouldFitBounds, appState.getSearchQuery(), appState.getIsSearchCaseSensitive(), showPoints, appState.getSourceOrder());
         this._renderClusterUI(items, labels, appState);
         this._renderNegativeSpace(coords, labels, appState, visualizer);
     }
@@ -344,9 +344,14 @@ export class UIController {
         const sourceCount = appState.getSourceCount();
         const eyeIcon = `<span class="material-symbols-outlined">visibility</span>`;
         const eyeOffIcon = `<span class="material-symbols-outlined">visibility_off</span>`;
+        // Listed front-most (top of the map stack) first, so the list reads top-to-bottom
+        // like a layers panel — the up/down buttons below move a source through this same
+        // order, which doubles as its z-order on the map (see appState.sourceOrder).
+        const sourceOrder = appState.getSourceOrder();
+        const displayOrder = [...sourceOrder].reverse();
         // Always list every source (not just ones with currently-visible points), so a hidden
         // or time-filtered-out source stays reachable to toggle back on.
-        for (let label = 0; label < sourceCount; label++) {
+        displayOrder.forEach((label, i) => {
             const clusterItems = clusters[label] || [];
             const clusterItemEl = document.createElement('div'); clusterItemEl.className = 'cluster-item'; clusterItemEl.dataset.label = label;
             const swatch = document.createElement('div'); swatch.className = 'legend-color-swatch'; swatch.style.backgroundColor = getColorForSource(label, sourceCount);
@@ -374,9 +379,24 @@ export class UIController {
                 this.negativeSpaceLabel = isNegativeSpaceActive ? null : label;
                 this.callbacks.onNegativeSpaceToggle();
             });
-            clusterItemEl.append(swatch, nameInput, countSpan, negativeSpaceToggle, visibilityToggle);
+
+            // Moves this source through sourceOrder — same order the list is rendered in,
+            // so "up" both moves the row up and brings it in front on the map.
+            const moveUpBtn = document.createElement('button'); moveUpBtn.type = 'button';
+            moveUpBtn.className = 'cluster-reorder-btn'; moveUpBtn.title = 'Bring forward';
+            moveUpBtn.innerHTML = `<span class="material-symbols-outlined">arrow_upward</span>`;
+            moveUpBtn.disabled = i === 0;
+            moveUpBtn.addEventListener('click', (e) => { e.stopPropagation(); this.callbacks.onReorderSource(label, 1); });
+
+            const moveDownBtn = document.createElement('button'); moveDownBtn.type = 'button';
+            moveDownBtn.className = 'cluster-reorder-btn'; moveDownBtn.title = 'Send backward';
+            moveDownBtn.innerHTML = `<span class="material-symbols-outlined">arrow_downward</span>`;
+            moveDownBtn.disabled = i === displayOrder.length - 1;
+            moveDownBtn.addEventListener('click', (e) => { e.stopPropagation(); this.callbacks.onReorderSource(label, -1); });
+
+            clusterItemEl.append(swatch, nameInput, countSpan, negativeSpaceToggle, visibilityToggle, moveUpBtn, moveDownBtn);
             clusterItemEl.addEventListener('click', () => this._handleClusterSelection(label, clusters)); this.clusterListContainer.appendChild(clusterItemEl);
-        }
+        });
         if (previouslyActiveLabel !== undefined) {
             const activeEl = this.clusterListContainer.querySelector(`.cluster-item[data-label="${previouslyActiveLabel}"]`);
             if (activeEl) { activeEl.classList.add('active'); if (clusters[previouslyActiveLabel]) { this._handleClusterSelection(parseInt(previouslyActiveLabel, 10), clusters, true); } else { this._deselectCluster(); } }

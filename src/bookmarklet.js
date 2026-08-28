@@ -7,9 +7,10 @@
 import scraperCode from './generated/twitter-scraper.js?raw';
 
 // One bookmarklet, dispatched by host: x.com/twitter.com can be scraped directly from the
-// DOM, but bsky.app and youtube.com/youtu.be have nothing to scrape from — those collectors
-// instead fetch via API from bluesky.html / youtube.html (src/collectors/*/main.js), so on
-// those hosts this just hands the current URL to the matching page via ?import=.
+// DOM, but bsky.app, youtube.com/youtu.be, and news.ycombinator.com have nothing to scrape
+// from — those collectors instead fetch via API from bluesky.html / youtube.html /
+// hackernews.html (src/collectors/*/main.js), so on those hosts this just hands the current
+// URL to the matching page via ?import=.
 //
 // Resolved here — while this script runs on our own page — rather than from `location`
 // inside the injected code below, where `location` would resolve to whatever page the
@@ -20,10 +21,13 @@ import scraperCode from './generated/twitter-scraper.js?raw';
 // domain (and path) once deployed.
 const blueskyImportUrl = new URL('bluesky.html', window.location.href).href;
 const youtubeImportUrl = new URL('youtube.html', window.location.href).href;
+const hackernewsImportUrl = new URL('hackernews.html', window.location.href).href;
 const dispatchCode = `if (location.hostname.indexOf('bsky.app') !== -1) {
     window.open('${blueskyImportUrl}?import=' + encodeURIComponent(location.href), '_blank');
 } else if (location.hostname.indexOf('youtube.com') !== -1 || location.hostname.indexOf('youtu.be') !== -1) {
     window.open('${youtubeImportUrl}?import=' + encodeURIComponent(location.href), '_blank');
+} else if (location.hostname.indexOf('ycombinator.com') !== -1) {
+    window.open('${hackernewsImportUrl}?import=' + encodeURIComponent(location.href), '_blank');
 } else {
     ${scraperCode}
 }`;

@@ -15,6 +15,9 @@ export class AppState {
         this.sources = [];
         // Per-source customizations, keyed directly by sourceLabel: { name, visible }
         this.customizations = new Map();
+        // Source labels in z-order, bottom to top — index 0 draws first (bottom),
+        // the last entry draws last (front-most on the map). Defaults to load order.
+        this.sourceOrder = [];
 
         // Time range state. Normalized per source (each source's own first/last item maps
         // to 0%/100%) rather than by absolute date, so sources that started at wildly
@@ -35,6 +38,7 @@ export class AppState {
     getArePointLabelsVisible = () => this.arePointLabelsVisible;
     getSources = () => this.sources;
     getSourceCount = () => this.sources.length;
+    getSourceOrder = () => this.sourceOrder;
     getSearchQuery = () => this.searchQuery;
     getIsSearchCaseSensitive = () => this.isSearchCaseSensitive;
 
@@ -88,6 +92,7 @@ export class AppState {
         this.data2D = (data.points || []).map(p => [p.x, p.y]);
         this.sourceLabels = this.allItems.map(item => item.sourceIndex ?? 0);
         this.customizations = new Map();
+        this.sourceOrder = this.sources.map((_, i) => i);
         this.searchQuery = '';
 
         // Per-source time range, for the normalization described above.
@@ -191,5 +196,14 @@ export class AppState {
 
     setSourceVisibility(label, isVisible) {
         this.getCustomization(label).visible = isVisible;
+    }
+
+    // direction: +1 moves the source one step toward the front (top of the map stack),
+    // -1 moves it one step toward the back. No-op at either end of the order.
+    moveSourceInOrder(label, direction) {
+        const i = this.sourceOrder.indexOf(label);
+        const j = i + direction;
+        if (i === -1 || j < 0 || j >= this.sourceOrder.length) return;
+        [this.sourceOrder[i], this.sourceOrder[j]] = [this.sourceOrder[j], this.sourceOrder[i]];
     }
 }

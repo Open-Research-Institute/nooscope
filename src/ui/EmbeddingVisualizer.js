@@ -180,9 +180,20 @@ export class EmbeddingVisualizer {
         return colorScale;
     }
 
-    render(pointsData, twoDimCoords, labels, sourceCount, areLabelsVisible, shouldFitBounds = false, searchQuery = '', searchCaseSensitive = false, showPoints = true) {
+    // sourceOrder: source labels bottom-to-top (see appState.sourceOrder). Maps each
+    // point's cluster_label to its position in that order, for use as the dominant term
+    // of the circle-sort-key expression above.
+    _generateSourceRankExpression(sourceOrder) {
+        if (sourceOrder.length === 0) return 0; // 'match' requires at least one pair
+        const rankExpr = ['match', ['get', 'cluster_label']];
+        sourceOrder.forEach((label, rank) => rankExpr.push(label, rank));
+        rankExpr.push(0); // Fallback rank for a label not in sourceOrder
+        return rankExpr;
+    }
+
+    render(pointsData, twoDimCoords, labels, sourceCount, areLabelsVisible, shouldFitBounds = false, searchQuery = '', searchCaseSensitive = false, showPoints = true, sourceOrder = []) {
         if (!this._loaded) {
-            this._ready.then(() => this.render(pointsData, twoDimCoords, labels, sourceCount, areLabelsVisible, shouldFitBounds, searchQuery, searchCaseSensitive, showPoints));
+            this._ready.then(() => this.render(pointsData, twoDimCoords, labels, sourceCount, areLabelsVisible, shouldFitBounds, searchQuery, searchCaseSensitive, showPoints, sourceOrder));
             return;
         }
         if (twoDimCoords.length === 0) return;
@@ -226,11 +237,14 @@ export class EmbeddingVisualizer {
 
         this.map.addLayer({
             id: 'points-circles', type: 'circle', source: 'points',
-            // Matched points sort above greyed-out ones (the +1e6 offset is a no-op
-            // when there's no search query, since `match` is true for everyone then),
-            // so a grey point never visually — or for hover hit-testing — sits on top
-            // of a matched point underneath it.
-            layout: { 'circle-sort-key': ['+', ['case', isMatch, 1e6, 0], ['coalesce', ['get', 'likes'], 0]] },
+            // Source order dominates the sort key (1e8 per rank step dwarfs the match/likes
+            // terms below it), so which source is "on top" is decided by the source list's
+            // ordering first — matched-vs-greyed-out and likes only break ties within a
+            // source. Matched points still sort above greyed-out ones (the +1e6 offset is a
+            // no-op when there's no search query, since `match` is true for everyone then),
+            // so a grey point never visually — or for hover hit-testing — sits on top of a
+            // matched point underneath it.
+            layout: { 'circle-sort-key': ['+', ['*', 1e8, this._generateSourceRankExpression(sourceOrder)], ['case', isMatch, 1e6, 0], ['coalesce', ['get', 'likes'], 0]] },
             paint: {
                 //'circle-radius': radiusExpression,
                 'circle-color': colorExpression,

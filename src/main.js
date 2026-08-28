@@ -48,6 +48,10 @@ document.addEventListener('DOMContentLoaded', () => {
             ui.render(appState, visualizer, false);
         },
         onNegativeSpaceToggle: () => ui.render(appState, visualizer, false),
+        onReorderSource: (label, direction) => {
+            appState.moveSourceInOrder(label, direction);
+            ui.render(appState, visualizer, false);
+        },
         getMapInstance: () => visualizer.getMapInstance()
     });
 
