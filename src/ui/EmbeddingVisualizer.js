@@ -41,11 +41,16 @@ export class EmbeddingVisualizer {
                     }
                 });
 
-                // Change cursor and show popup on hover
+                // Change cursor and show popup on hover, but not for points
+                // greyed out by the search filter (match === false). Sort order
+                // puts matched points above grey ones, but scan e.features rather
+                // than trusting index 0 as an extra safeguard against a grey point
+                // still winning the hover hit-test.
                 this.map.on('mouseenter', 'points-circles', (e) => {
+                    const feature = e.features.find(f => f.properties.match !== false);
+                    if (!feature) return;
                     this.map.getCanvas().style.cursor = 'pointer';
-                    const properties = e.features[0].properties;
-                    this._createPopup(e.lngLat, properties);
+                    this._createPopup(e.lngLat, feature.properties);
                 });
                 this.map.on('mouseleave', 'points-circles', () => {
                     this.map.getCanvas().style.cursor = '';
@@ -218,7 +223,11 @@ export class EmbeddingVisualizer {
 
         this.map.addLayer({
             id: 'points-circles', type: 'circle', source: 'points',
-            layout: { 'circle-sort-key': ['coalesce', ['get', 'likes'], 0] },
+            // Matched points sort above greyed-out ones (the +1e6 offset is a no-op
+            // when there's no search query, since `match` is true for everyone then),
+            // so a grey point never visually — or for hover hit-testing — sits on top
+            // of a matched point underneath it.
+            layout: { 'circle-sort-key': ['+', ['case', isMatch, 1e6, 0], ['coalesce', ['get', 'likes'], 0]] },
             paint: {
                 //'circle-radius': radiusExpression,
                 'circle-color': colorExpression,
