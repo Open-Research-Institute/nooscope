@@ -98,10 +98,6 @@ async function main() {
     }
 
     const stagedFiles = await loadStagedFiles(run.files);
-    if (stagedFiles.length === 0) {
-        console.error('No valid collector export files found.');
-        process.exit(1);
-    }
 
     const embedded = await embedItems(stagedFiles, {
         apiKey,

@@ -25,3 +25,17 @@ npm install
 npm run dev     # index.html / viewer.html / bluesky.html, live-reloaded
 npm run build   # static production build, output in dist/
 ```
+
+## Example run
+
+Initial:
+
+```
+node scripts/pipeline.mjs data/sources/twitter-bennjordan-flock-takes-357.json data/sources/bluesky-bennjordan-flock-takes-44.json -o data/benn-jordan
+```
+
+To recreate:
+
+```
+node scripts/pipeline.mjs data/benn-jordan
+```

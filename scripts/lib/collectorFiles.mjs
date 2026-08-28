@@ -7,8 +7,8 @@ export function isCollectorExport(parsed) {
 }
 
 // Reads and validates each collector export file off disk into the
-// { fileName, context, messages } shape embedItems() expects. Invalid files are
-// skipped with a warning rather than aborting the whole run.
+// { fileName, context, messages } shape embedItems() expects. Throws on the
+// first missing/invalid file rather than silently dropping it from the run.
 export async function loadStagedFiles(filePaths) {
     const stagedFiles = [];
     for (const filePath of filePaths) {
@@ -16,12 +16,10 @@ export async function loadStagedFiles(filePaths) {
         try {
             parsed = JSON.parse(await fs.readFile(filePath, 'utf-8'));
         } catch (err) {
-            console.error(`Skipping ${filePath}: ${err.message}`);
-            continue;
+            throw new Error(`Could not read ${filePath}: ${err.message}`);
         }
         if (!isCollectorExport(parsed)) {
-            console.error(`Skipping ${filePath}: not a valid collector export ({context, messages}).`);
-            continue;
+            throw new Error(`${filePath} is not a valid collector export ({context, messages}).`);
         }
         stagedFiles.push({ fileName: path.basename(filePath), context: parsed.context, messages: parsed.messages });
     }
