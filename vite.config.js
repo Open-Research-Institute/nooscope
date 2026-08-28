@@ -16,6 +16,7 @@ export default defineConfig({
         main: resolve(rootDir, 'index.html'),
         viewer: resolve(rootDir, 'viewer.html'),
         bluesky: resolve(rootDir, 'bluesky.html'),
+        youtube: resolve(rootDir, 'youtube.html'),
       },
     },
   },

@@ -3,7 +3,7 @@ export class AppState {
         this.visualizationName = "Untitled Visualization";
         this.allItems = [];
         this.data2D = [];
-        this.arePointLabelsVisible = true;
+        this.arePointLabelsVisible = false;
         this.searchQuery = '';
         this.isSearchCaseSensitive = false;
 

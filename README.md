@@ -2,9 +2,12 @@
 
 Toolkit for visualizing the evolving territories in social media discourse.
 
-1. **Scrape.** Click the bookmarklet on a post/profile/timeline (Twitter) or paste
-   a thread URL into `bluesky.html` (Bluesky), and save the downloaded JSON into
-   `data/sources/`.
+1. **Scrape.** Click the bookmarklet on a post/profile/timeline (Twitter), a post
+   (Bluesky), or a video (YouTube), and save the downloaded JSON into
+   `data/sources/`. Bluesky and YouTube can also be run by hand — paste a thread/video
+   URL straight into `bluesky.html` / `youtube.html`. YouTube needs a one-time API
+   key paste into `youtube.html` (saved in that browser's local storage) — see the
+   note on that page for how to get one.
 2. **Run the pipeline.**
    ```
    node scripts/pipeline.mjs data/sources/scrape-1.json data/sources/scrape-2.json -o data/my-dataset
