@@ -1,3 +1,5 @@
+import { timeToPercent } from '../shared/logTimeScale.js';
+
 export class AppState {
     constructor() {
         this.visualizationName = "Untitled Visualization";
@@ -14,11 +16,15 @@ export class AppState {
         // Per-source customizations, keyed directly by sourceLabel: { name, visible }
         this.customizations = new Map();
 
-        // Date range state
-        this.globalMinDate = 0;
-        this.globalMaxDate = 0;
-        this.currentStartDate = 0;
-        this.currentEndDate = 0;
+        // Time range state. Normalized per source (each source's own first/last item maps
+        // to 0%/100%) rather than by absolute date, so sources that started at wildly
+        // different real times — a video from last year vs. a thread from yesterday —
+        // become comparable by how far each has progressed through its own lifespan.
+        // sourceLabel -> { min, max } (raw timestamps, ms).
+        this.sourceTimeRanges = new Map();
+        this.hasTimeData = false;
+        this.currentStartPercent = 0;
+        this.currentEndPercent = 100;
     }
 
     // --- GETTERS ---
@@ -33,10 +39,9 @@ export class AppState {
     getIsSearchCaseSensitive = () => this.isSearchCaseSensitive;
 
     getTimeRange = () => ({
-        globalMin: this.globalMinDate,
-        globalMax: this.globalMaxDate,
-        currentStart: this.currentStartDate,
-        currentEnd: this.currentEndDate
+        hasTimeData: this.hasTimeData,
+        currentStart: this.currentStartPercent,
+        currentEnd: this.currentEndPercent,
     });
 
     // --- SETTERS & STATE MODIFIERS ---
@@ -47,9 +52,22 @@ export class AppState {
         this.isSearchCaseSensitive = caseSensitive;
     };
 
-    setTimeRange(start, end) {
-        this.currentStartDate = start;
-        this.currentEndDate = end;
+    setTimeRange(startPercent, endPercent) {
+        this.currentStartPercent = startPercent;
+        this.currentEndPercent = endPercent;
+    }
+
+    /**
+     * An item's position, as a percent, through its own source's lifespan (log-scaled —
+     * see shared/logTimeScale.js) — or null if it or its source has no valid timestamp.
+     */
+    getItemTimePercent(item, sourceLabel) {
+        if (!item.timestamp) return null;
+        const t = new Date(item.timestamp).getTime();
+        if (isNaN(t)) return null;
+        const range = this.sourceTimeRanges.get(sourceLabel);
+        if (!range) return null;
+        return timeToPercent(t, range.min, range.max);
     }
 
     /**
@@ -72,33 +90,28 @@ export class AppState {
         this.customizations = new Map();
         this.searchQuery = '';
 
-        // Calculate global date range
-        let minTime = Infinity;
-        let maxTime = -Infinity;
-        let hasTime = false;
+        // Per-source time range, for the normalization described above.
+        this.sourceTimeRanges = new Map();
+        this.hasTimeData = false;
 
-        this.allItems.forEach(item => {
-            if (item.timestamp) {
-                const t = new Date(item.timestamp).getTime();
-                if (!isNaN(t)) {
-                    if (t < minTime) minTime = t;
-                    if (t > maxTime) maxTime = t;
-                    hasTime = true;
-                }
+        this.allItems.forEach((item, i) => {
+            if (!item.timestamp) return;
+            const t = new Date(item.timestamp).getTime();
+            if (isNaN(t)) return;
+            this.hasTimeData = true;
+
+            const sourceLabel = this.sourceLabels[i];
+            const range = this.sourceTimeRanges.get(sourceLabel);
+            if (!range) {
+                this.sourceTimeRanges.set(sourceLabel, { min: t, max: t });
+            } else {
+                if (t < range.min) range.min = t;
+                if (t > range.max) range.max = t;
             }
         });
 
-        if (hasTime) {
-            this.globalMinDate = minTime;
-            this.globalMaxDate = maxTime;
-            this.currentStartDate = minTime;
-            this.currentEndDate = maxTime;
-        } else {
-            this.globalMinDate = 0;
-            this.globalMaxDate = 100;
-            this.currentStartDate = 0;
-            this.currentEndDate = 100;
-        }
+        this.currentStartPercent = 0;
+        this.currentEndPercent = 100;
     }
 
     /**
@@ -107,26 +120,22 @@ export class AppState {
      * @returns {number[]} Array of counts per bin
      */
     getHistogramData(binCount = 60) {
-        if (!this.allItems.length || this.globalMaxDate <= this.globalMinDate) {
+        if (!this.hasTimeData) {
             return new Array(binCount).fill(0);
         }
 
-        const range = this.globalMaxDate - this.globalMinDate;
         const bins = new Array(binCount).fill(0);
 
-        this.allItems.forEach(item => {
-            if (!item.timestamp) return;
-            const t = new Date(item.timestamp).getTime();
-            if (isNaN(t)) return;
+        this.allItems.forEach((item, i) => {
+            const percent = this.getItemTimePercent(item, this.sourceLabels[i]);
+            if (percent === null) return;
 
-            // Calculate bin index
-            let i = Math.floor(((t - this.globalMinDate) / range) * binCount);
+            let bin = Math.floor((percent / 100) * binCount);
+            // Clamp to last bin if exactly on the source's max date
+            bin = Math.min(bin, binCount - 1);
+            bin = Math.max(bin, 0); // Safety check
 
-            // Clamp to last bin if exactly on max date
-            i = Math.min(i, binCount - 1);
-            i = Math.max(i, 0); // Safety check
-
-            bins[i]++;
+            bins[bin]++;
         });
 
         return bins;
@@ -148,13 +157,9 @@ export class AppState {
             const sourceLabel = this.sourceLabels[i];
             if (this.customizations.get(sourceLabel)?.visible === false) return;
 
-            let itemTime = 0;
-            if (item.timestamp) {
-                itemTime = new Date(item.timestamp).getTime();
-            }
-            const isValidTime = !isNaN(itemTime) && itemTime > 0;
+            const percent = this.getItemTimePercent(item, sourceLabel);
             // Items without a valid timestamp are always kept, regardless of time range.
-            if (isValidTime && (itemTime < this.currentStartDate || itemTime > this.currentEndDate)) return;
+            if (percent !== null && (percent < this.currentStartPercent || percent > this.currentEndPercent)) return;
 
             items.push(item);
             coords.push(this.data2D[i]);

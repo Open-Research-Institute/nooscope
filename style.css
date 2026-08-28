@@ -31,6 +31,10 @@
     .cluster-visibility-toggle:hover { @apply bg-slate-200 text-slate-600; }
     .cluster-visibility-toggle.visible { @apply text-sky-600; }
     .cluster-visibility-toggle .material-symbols-outlined { @apply text-2xl; }
+    .cluster-negative-space-toggle { @apply icon-btn w-8 h-8 bg-transparent border-none cursor-pointer text-slate-400; }
+    .cluster-negative-space-toggle:hover { @apply bg-slate-200 text-slate-600; }
+    .cluster-negative-space-toggle.active { @apply text-amber-600; }
+    .cluster-negative-space-toggle .material-symbols-outlined { @apply text-2xl; }
     #response-list-container { @apply h-[35vh] bg-white border-t-2 border-slate-200 shadow-inner overflow-y-auto; }
     .cluster-detail-view { @apply p-4 grid gap-2; }
     .response-item { @apply bg-slate-100 rounded-lg p-3 text-sm leading-snug border border-slate-200/80 cursor-pointer transition-colors hover:border-slate-300; }

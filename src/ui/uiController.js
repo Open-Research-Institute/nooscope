@@ -3,8 +3,8 @@ const truncate = (str, maxLength) => { if (!str || str.length <= maxLength) retu
 import { getColorForSource } from '../shared/sourceColors.js';
 
 export class UIController {
-    constructor({ onSearchChange, onNameChange, onVisibilityChange, onToggleLabels, onTitleChange, getMapInstance, onPostSelect, onTimeRangeChange }) {
-        this.callbacks = { onSearchChange, onNameChange, onVisibilityChange, onToggleLabels, onTitleChange, onPostSelect, onTimeRangeChange };
+    constructor({ onSearchChange, onNameChange, onVisibilityChange, onToggleLabels, onTitleChange, getMapInstance, onPostSelect, onTimeRangeChange, onNegativeSpaceToggle }) {
+        this.callbacks = { onSearchChange, onNameChange, onVisibilityChange, onToggleLabels, onTitleChange, onPostSelect, onTimeRangeChange, onNegativeSpaceToggle };
 
         this.toggleLabelsButton = document.getElementById('toggle-labels-button');
         this.queryInput = document.getElementById('query-input');
@@ -30,13 +30,20 @@ export class UIController {
         this.timelineEndLabel = document.getElementById('timeline-end-label');
 
         // State for timeline dragging
+        // Source label currently shown as a "negative space" overlay (where that
+        // source's posts reach in the embedding that no other visible source
+        // does), or null if the overlay is off. View-only, like the DOM-tracked
+        // cluster-item.active selection above — not persisted in appState.
+        this.negativeSpaceLabel = null;
+
         this.isDragging = false;
         this.dragMode = null; // 'move', 'resize-left', 'resize-right'
         this.dragStartX = 0;
         this.dragStartLeft = 0; // percentage
         this.dragStartRight = 0; // percentage
-        this.globalMinTime = 0;
-        this.globalMaxTime = 0;
+        // These percentages ARE the selection — each item's position on this axis is
+        // already normalized to its own source's lifespan (see appState.js), so there's
+        // no absolute-time conversion happening here anymore.
         this.currentLeftPercent = 0;
         this.currentRightPercent = 100;
 
@@ -196,12 +203,7 @@ export class UIController {
 
     _emitTimeRangeChange() {
         if (!this.callbacks.onTimeRangeChange) return;
-
-        const range = this.globalMaxTime - this.globalMinTime;
-        const start = this.globalMinTime + (range * (this.currentLeftPercent / 100));
-        const end = this.globalMinTime + (range * (this.currentRightPercent / 100));
-
-        this.callbacks.onTimeRangeChange(start, end);
+        this.callbacks.onTimeRangeChange(this.currentLeftPercent, this.currentRightPercent);
     }
 
     _updateTimelineVisuals() {
@@ -215,13 +217,9 @@ export class UIController {
         this.timelineDimmerLeft.style.width = `${this.currentLeftPercent}%`;
         this.timelineDimmerRight.style.width = `${100 - this.currentRightPercent}%`;
 
-        // Update labels
-        const range = this.globalMaxTime - this.globalMinTime;
-        const startTime = this.globalMinTime + (range * (this.currentLeftPercent / 100));
-        const endTime = this.globalMinTime + (range * (this.currentRightPercent / 100));
-
-        this.timelineStartLabel.textContent = this._formatDate(startTime);
-        this.timelineEndLabel.textContent = this._formatDate(endTime);
+        // Labels stay the static "Start"/"End" from the markup — each source is
+        // normalized to its own lifespan, so a given percent doesn't correspond to one
+        // shared date across sources, only "how far into this source's own history".
     }
 
     _renderHistogram(counts) {
@@ -250,32 +248,18 @@ export class UIController {
         });
     }
 
-    _formatDate(timestamp) {
-        if (!timestamp) return '';
-        const date = new Date(timestamp);
-        return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
-    }
-
     initializeTimeline(appState) {
-        const { globalMin, globalMax, currentStart, currentEnd } = appState.getTimeRange();
-        this.globalMinTime = globalMin;
-        this.globalMaxTime = globalMax;
+        const { hasTimeData, currentStart, currentEnd } = appState.getTimeRange();
 
-        if (globalMax <= globalMin) {
+        if (!hasTimeData) {
             this.timelineControls.classList.add('hidden');
             return;
         }
 
         this.timelineControls.classList.remove('hidden');
 
-        // Convert timestamps to percentages
-        const range = globalMax - globalMin;
-        this.currentLeftPercent = ((currentStart - globalMin) / range) * 100;
-        this.currentRightPercent = ((currentEnd - globalMin) / range) * 100;
-
-        // Clamp
-        this.currentLeftPercent = Math.max(0, Math.min(100, this.currentLeftPercent));
-        this.currentRightPercent = Math.max(0, Math.min(100, this.currentRightPercent));
+        this.currentLeftPercent = Math.max(0, Math.min(100, currentStart));
+        this.currentRightPercent = Math.max(0, Math.min(100, currentEnd));
 
         this._updateTimelineVisuals();
 
@@ -332,8 +316,21 @@ export class UIController {
     render(appState, visualizer, shouldFitBounds = false) {
         const { items, coords, labels } = appState.getFilteredData();
 
-        visualizer.render(items, coords, labels, appState.getSourceCount(), appState.getArePointLabelsVisible(), shouldFitBounds, appState.getSearchQuery(), appState.getIsSearchCaseSensitive());
+        // While a negative-space mask is showing, hide the raw points/labels
+        // entirely — the whole point (per the user) is to look at just the
+        // mask, not have it competing with the dots underneath.
+        const showPoints = this.negativeSpaceLabel === null;
+        visualizer.render(items, coords, labels, appState.getSourceCount(), appState.getArePointLabelsVisible(), shouldFitBounds, appState.getSearchQuery(), appState.getIsSearchCaseSensitive(), showPoints);
         this._renderClusterUI(items, labels, appState);
+        this._renderNegativeSpace(coords, labels, appState, visualizer);
+    }
+    _renderNegativeSpace(coords, labels, appState, visualizer) {
+        if (this.negativeSpaceLabel === null) { visualizer.hideDensityDiff(); return; }
+
+        const coordsA = [], coordsB = [];
+        labels.forEach((label, i) => (label === this.negativeSpaceLabel ? coordsA : coordsB).push(coords[i]));
+
+        visualizer.showDensityDiff(coordsA, coordsB); // flat black mask — see EmbeddingVisualizer.showDensityDiff
     }
     _renderClusterUI(items, labels, appState) {
         const previouslyActiveLabel = this.clusterListContainer.querySelector('.cluster-item.active')?.dataset.label;
@@ -365,7 +362,19 @@ export class UIController {
             visibilityToggle.title = isVisible ? "Hide this source's points" : "Show this source's points";
             visibilityToggle.addEventListener('click', (e) => { e.stopPropagation(); this.callbacks.onVisibilityChange(label, !isVisible); });
             const countSpan = document.createElement('span'); countSpan.className = 'cluster-item-count'; countSpan.textContent = clusterItems.length;
-            clusterItemEl.append(swatch, nameInput, countSpan, visibilityToggle);
+            const negativeSpaceToggle = document.createElement('button'); negativeSpaceToggle.type = 'button';
+            const isNegativeSpaceActive = this.negativeSpaceLabel === label;
+            negativeSpaceToggle.className = `cluster-negative-space-toggle ${isNegativeSpaceActive ? 'active' : ''}`;
+            negativeSpaceToggle.innerHTML = `<span class="material-symbols-outlined">difference</span>`;
+            negativeSpaceToggle.title = isNegativeSpaceActive
+                ? "Hide this source's unique reach"
+                : "Show where this source reaches in the embedding that no other visible source does";
+            negativeSpaceToggle.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.negativeSpaceLabel = isNegativeSpaceActive ? null : label;
+                this.callbacks.onNegativeSpaceToggle();
+            });
+            clusterItemEl.append(swatch, nameInput, countSpan, negativeSpaceToggle, visibilityToggle);
             clusterItemEl.addEventListener('click', () => this._handleClusterSelection(label, clusters)); this.clusterListContainer.appendChild(clusterItemEl);
         }
         if (previouslyActiveLabel !== undefined) {

@@ -1,6 +1,7 @@
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { getColorForSource } from '../shared/sourceColors.js';
+import { computeBounds, renderReachOnlyMask } from '../services/densityDiff.js';
 
 export class EmbeddingVisualizer {
     constructor({ containerId }) {
@@ -179,9 +180,9 @@ export class EmbeddingVisualizer {
         return colorScale;
     }
 
-    render(pointsData, twoDimCoords, labels, sourceCount, areLabelsVisible, shouldFitBounds = false, searchQuery = '', searchCaseSensitive = false) {
+    render(pointsData, twoDimCoords, labels, sourceCount, areLabelsVisible, shouldFitBounds = false, searchQuery = '', searchCaseSensitive = false, showPoints = true) {
         if (!this._loaded) {
-            this._ready.then(() => this.render(pointsData, twoDimCoords, labels, sourceCount, areLabelsVisible, shouldFitBounds, searchQuery, searchCaseSensitive));
+            this._ready.then(() => this.render(pointsData, twoDimCoords, labels, sourceCount, areLabelsVisible, shouldFitBounds, searchQuery, searchCaseSensitive, showPoints));
             return;
         }
         if (twoDimCoords.length === 0) return;
@@ -237,8 +238,10 @@ export class EmbeddingVisualizer {
             }
         }, 'point-labels');
 
+        this.map.setLayoutProperty('points-circles', 'visibility', showPoints ? 'visible' : 'none');
+
         if (this.map.getLayer('point-labels')) {
-            this.map.setLayoutProperty('point-labels', 'visibility', areLabelsVisible ? 'visible' : 'none');
+            this.map.setLayoutProperty('point-labels', 'visibility', (showPoints && areLabelsVisible) ? 'visible' : 'none');
             // Push the text label out past the circle radius, with a small gap.
             // text-radial-offset is in ems, and point-labels' text-size is 12px.
             this.map.setLayoutProperty('point-labels', 'text-radial-offset', ['/', ['+', radiusExpression, 4], 12]);
@@ -285,6 +288,58 @@ export class EmbeddingVisualizer {
             curve: 1,
             essential: true
         });
+    }
+
+    // "Negative space" overlay: a hard-edged, flat-opacity shape covering
+    // wherever a coordsA point is within a fixed radius and no coordsB point
+    // is — a literal radius check, not a density gradient. See
+    // src/services/densityDiff.js.
+    showDensityDiff(coordsA, coordsB, color = '#0f172a') {
+        if (!this._loaded) {
+            this._ready.then(() => this.showDensityDiff(coordsA, coordsB, color));
+            return;
+        }
+        if (coordsA.length === 0) {
+            this.hideDensityDiff();
+            return;
+        }
+
+        const bounds = computeBounds([coordsA, coordsB]);
+        const canvas = renderReachOnlyMask(coordsA, coordsB, bounds, { color });
+
+        const coordinates = [
+            [bounds.minX, bounds.maxY],
+            [bounds.maxX, bounds.maxY],
+            [bounds.maxX, bounds.minY],
+            [bounds.minX, bounds.minY],
+        ];
+
+        const existing = this.map.getSource('density-diff');
+        if (existing) {
+            existing.updateImage({ url: canvas.toDataURL(), coordinates });
+        } else {
+            this.map.addSource('density-diff', { type: 'image', url: canvas.toDataURL(), coordinates });
+            // Sit below points-circles (points stay legible on top) but above
+            // the plain background. points-circles is removed/re-added on
+            // every render() call, always reinserted right before
+            // point-labels, so anchoring here (rather than to points-circles
+            // itself) keeps this layer's position stable across re-renders.
+            const beforeId = this.map.getLayer('points-circles') ? 'points-circles' : 'point-labels';
+            this.map.addLayer({
+                id: 'density-diff-layer', type: 'raster', source: 'density-diff',
+                // Opacity is already baked into the mask's pixel alpha, and
+                // 'nearest' keeps the radius-check edge crisp instead of
+                // blurring it on zoom — this is meant to read as a hard
+                // black/transparent shape, not a smooth gradient.
+                paint: { 'raster-opacity': 1, 'raster-resampling': 'nearest' }
+            }, beforeId);
+        }
+    }
+
+    hideDensityDiff() {
+        if (!this._loaded) return;
+        if (this.map.getLayer('density-diff-layer')) this.map.removeLayer('density-diff-layer');
+        if (this.map.getSource('density-diff')) this.map.removeSource('density-diff');
     }
 
     togglePointLabels() {

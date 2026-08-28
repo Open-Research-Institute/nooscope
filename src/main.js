@@ -47,6 +47,7 @@ document.addEventListener('DOMContentLoaded', () => {
             appState.setTimeRange(start, end);
             ui.render(appState, visualizer, false);
         },
+        onNegativeSpaceToggle: () => ui.render(appState, visualizer, false),
         getMapInstance: () => visualizer.getMapInstance()
     });
 
