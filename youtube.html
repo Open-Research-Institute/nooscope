@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🦠</text></svg>">
+    
+    <title>Noöscope — YouTube Import</title>
+  <script type="module" crossorigin src="./assets/youtube.2c54386d.js"></script>
+  <link rel="modulepreload" href="./assets/style.7f2dd081.js">
+  <link rel="modulepreload" href="./assets/message-format.7f11f58a.js">
+  <link rel="stylesheet" href="./assets/style.b684a3c0.css">
+</head>
+<body class="bg-slate-100 text-slate-900 font-sans antialiased">
+    <div class="container mx-auto px-4 py-8 sm:py-12 max-w-3xl">
+        <header class="text-center mb-8">
+            <h1 class="text-3xl font-bold text-sky-600 tracking-tight">🦠 Noöscope — YouTube Import</h1>
+            <p class="mt-2 text-slate-600">Paste a YouTube video URL to pull its comments.</p>
+        </header>
+
+        <form id="import-form" class="bg-white border border-slate-200 rounded-lg shadow-sm p-4 flex flex-col gap-3">
+            <div class="flex items-center gap-3">
+                <input id="video-url-input" type="text" placeholder="https://www.youtube.com/watch?v=xxxxxxxxxxx"
+                       class="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500">
+                <button id="run-btn" type="submit"
+                        class="shrink-0 min-w-[70px] px-5 py-2 text-sm font-semibold text-white bg-sky-600 rounded-lg shadow-sm whitespace-nowrap
+                               hover:bg-sky-700 active:bg-sky-800 transition-colors
+                               disabled:bg-slate-300 disabled:text-slate-500 disabled:shadow-none disabled:cursor-not-allowed">Run</button>
+            </div>
+            <div>
+                <input id="api-key-input" type="password" placeholder="YouTube Data API key"
+                       class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500">
+                <p class="mt-1 text-xs text-slate-500">
+                    Saved only in this browser's local storage. Get one from the
+                    <a class="text-sky-600 underline" href="https://console.cloud.google.com/apis/library/youtube.googleapis.com" target="_blank" rel="noopener">Google Cloud Console</a>
+                    — enable "YouTube Data API v3", create an API key, and (recommended) restrict it to this site's origin under HTTP referrers.
+                </p>
+            </div>
+        </form>
+
+        <div id="status-area" class="mt-6 text-center text-slate-500"></div>
+        <a id="download-btn" class="hidden inline-block px-5 py-2 bg-sky-600 text-white font-bold rounded-lg shadow-md hover:bg-sky-700 transition-all no-underline">Download JSON</a>
+        <pre id="result-area" class="mt-6 bg-white border border-slate-200 rounded-lg shadow-sm p-4 text-xs leading-relaxed whitespace-pre-wrap break-words"></pre>
+    </div>
+    
+</body>
+</html>
