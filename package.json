@@ -11,7 +11,8 @@
     "preview": "vite preview",
     "embed": "node scripts/embed.mjs",
     "project": "node scripts/project.mjs",
-    "pipeline": "node scripts/pipeline.mjs"
+    "pipeline": "node scripts/pipeline.mjs",
+    "lexicon": "node scripts/lexicon.mjs"
   },
   "devDependencies": {
     "autoprefixer": "^10.4.19",
@@ -22,6 +23,7 @@
   "dependencies": {
     "hdbscan-ts": "^1.0.16",
     "maplibre-gl": "^4.0.0",
+    "stemmer": "^2.0.1",
     "umap-js": "^1.4.0"
   }
 }
