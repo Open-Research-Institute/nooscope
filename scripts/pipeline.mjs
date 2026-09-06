@@ -105,7 +105,7 @@ async function main() {
         onLog: (msg) => console.log(`[embed] ${msg}`),
     });
     const result = await projectItems(embedded, {
-        method: run.method || 'umap',
+        method: run.method,
         onLog: (msg) => console.log(`[project] ${msg}`),
     });
 

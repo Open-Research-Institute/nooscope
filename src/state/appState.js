@@ -1,4 +1,11 @@
 import { timeToPercent } from '../shared/logTimeScale.js';
+import { hashString } from '../shared/hash.js';
+
+// Renamed sources are persisted to localStorage under this prefix, keyed by
+// a hash of the visualization's source identity (this.sourceSetKey, computed
+// in loadFromPipelineOutput) — not the output filename, so re-running the
+// embed/project pipeline on the same scrapes still recalls the names.
+const SOURCE_NAMES_STORAGE_PREFIX = 'postscope:sourceNames:';
 
 export class AppState {
     constructor() {
@@ -81,6 +88,9 @@ export class AppState {
      */
     loadFromPipelineOutput(data) {
         this.sources = data.sources || [];
+        this.sourceSetKey = hashString(JSON.stringify(
+            this.sources.map(s => ({ fileName: s.fileName, collector: s.collector, source: s.source }))
+        ));
         this.allItems = (data.points || []).map(p => ({
             content: p.text,
             author: p.author,
@@ -92,6 +102,7 @@ export class AppState {
         this.data2D = (data.points || []).map(p => [p.x, p.y]);
         this.sourceLabels = this.allItems.map(item => item.sourceIndex ?? 0);
         this.customizations = new Map();
+        this._loadSavedNames();
         this.sourceOrder = this.sources.map((_, i) => i);
         this.searchQuery = '';
 
@@ -152,15 +163,19 @@ export class AppState {
      * structure. Search does NOT filter here — it only dims non-matching points
      * (see EmbeddingVisualizer.render), so the map view never jumps/refits as you
      * type.
+     *
+     * Pass ignoreVisibility to keep hidden sources' items in the result (still
+     * subject to the time range) — used for the source list's counts, so hiding
+     * a source doesn't make its count read as zero.
      */
-    getFilteredData() {
+    getFilteredData({ ignoreVisibility = false } = {}) {
         const items = [];
         const coords = [];
         const labels = [];
 
         this.allItems.forEach((item, i) => {
             const sourceLabel = this.sourceLabels[i];
-            if (this.customizations.get(sourceLabel)?.visible === false) return;
+            if (!ignoreVisibility && this.customizations.get(sourceLabel)?.visible === false) return;
 
             const percent = this.getItemTimePercent(item, sourceLabel);
             // Items without a valid timestamp are always kept, regardless of time range.
@@ -192,6 +207,35 @@ export class AppState {
 
     setSourceName(label, newName) {
         this.getCustomization(label).name = newName;
+        this._saveNames();
+    }
+
+    /** Applies any previously-saved name overrides for this exact set of sources. */
+    _loadSavedNames() {
+        let saved;
+        try {
+            saved = JSON.parse(localStorage.getItem(SOURCE_NAMES_STORAGE_PREFIX + this.sourceSetKey) || '{}');
+        } catch {
+            return; // localStorage unavailable, or a corrupt entry — defaults still apply.
+        }
+        Object.entries(saved).forEach(([label, name]) => {
+            this.getCustomization(Number(label)).name = name;
+        });
+    }
+
+    /** Persists names that differ from their source's default label. */
+    _saveNames() {
+        const names = {};
+        this.customizations.forEach((customization, label) => {
+            if (customization.name && customization.name !== this.getDefaultGroupName(label)) {
+                names[label] = customization.name;
+            }
+        });
+        try {
+            localStorage.setItem(SOURCE_NAMES_STORAGE_PREFIX + this.sourceSetKey, JSON.stringify(names));
+        } catch {
+            // localStorage unavailable/full — renaming still works for this session.
+        }
     }
 
     setSourceVisibility(label, isVisible) {

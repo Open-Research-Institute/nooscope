@@ -15,6 +15,15 @@ function sourceLabelFor(context, fileName, usedLabels) {
     return label;
 }
 
+// The OpenAI API can return embeddings as base64-encoded strings instead of
+// float arrays (observed inconsistently across requests, and some entries in
+// older caches are stuck in this format). Normalize both to a plain number[].
+function decodeEmbedding(value) {
+    if (Array.isArray(value)) return value;
+    const buf = Buffer.from(value, 'base64');
+    return Array.from(new Float32Array(buf.buffer, buf.byteOffset, buf.byteLength / 4));
+}
+
 async function loadCache(cacheFile) {
     try {
         return JSON.parse(await fs.readFile(cacheFile, 'utf-8'));
@@ -40,7 +49,7 @@ async function embedTexts(texts, { apiKey, cacheFile, onProgress }) {
     texts.forEach((text, i) => {
         const cached = cache[text];
         if (cached) {
-            results[i] = cached.embedding;
+            results[i] = decodeEmbedding(cached.embedding);
         } else {
             uncachedIndices.push(i);
             uncachedTexts.push(text);
@@ -57,7 +66,7 @@ async function embedTexts(texts, { apiKey, cacheFile, onProgress }) {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${apiKey}`,
             },
-            body: JSON.stringify({ model: MODEL_NAME, input: batch }),
+            body: JSON.stringify({ model: MODEL_NAME, input: batch, encoding_format: 'float' }),
         });
         const data = await response.json();
         if (!response.ok) {

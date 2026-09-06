@@ -1,4 +1,5 @@
 import { UMAP } from 'umap-js';
+import { Matrix } from 'ml-matrix';
 
 const RANDOM_SEED = 1991;
 function mulberry32(a) {
@@ -31,8 +32,73 @@ function projectUmap(items, embeddings, options = {}, onLog) {
     return umap.getEmbedding().map(([x, y]) => ({ x, y }));
 }
 
+// Gram-Schmidt orthonormalization of a matrix's columns, in place. Returns
+// each column's pre-normalization norm (converges to its eigenvalue estimate).
+function orthonormalizeColumns(M) {
+    const norms = [];
+    for (let col = 0; col < M.columns; col++) {
+        let v = M.getColumnVector(col);
+        for (let prev = 0; prev < col; prev++) {
+            const u = M.getColumnVector(prev);
+            v = v.sub(u.mulS(u.transpose().mmul(v).get(0, 0)));
+        }
+        const norm = v.norm();
+        norms.push(norm);
+        M.setColumn(col, norm > 1e-12 ? v.div(norm) : v);
+    }
+    return norms;
+}
+
+// Top-`k` principal component scores of mean-centered `X` (n x d) via block
+// power iteration. Each pass multiplies by X^T X without ever forming that
+// d x d matrix (X^T(X v) instead), so cost stays O(n*d*k) per iteration
+// instead of the O(n*d^2)+ a full SVD needs to produce every component. The
+// only reason to hand-roll this rather than use a PCA library is that we
+// only need k=2 of up to d components, and the iteration gives a natural
+// place to report progress — same shape as the UMAP step loop above.
+function powerIteratePca(X, k, { seed, maxIterations = 100, tolerance = 1e-6, onLog } = {}) {
+    const random = mulberry32(seed ?? RANDOM_SEED);
+    let V = Matrix.rand(X.columns, k, { random });
+    orthonormalizeColumns(V);
+
+    let prevEigenvalues = new Array(k).fill(0);
+    for (let iter = 0; iter < maxIterations; iter++) {
+        V = X.transpose().mmul(X.mmul(V));
+        const eigenvalues = orthonormalizeColumns(V);
+
+        const delta = Math.max(...eigenvalues.map((ev, i) =>
+            Math.abs(ev - prevEigenvalues[i]) / Math.max(Math.abs(ev), 1e-12)));
+        prevEigenvalues = eigenvalues;
+        const converged = delta < tolerance;
+        if (converged || iter % 5 === 0) {
+            onLog?.(`projecting: iteration ${iter + 1}/${maxIterations} (Δ=${delta.toExponential(2)})`);
+        }
+        if (converged) break;
+    }
+
+    return X.mmul(V);
+}
+
+function projectPca(items, embeddings, options = {}, onLog) {
+    if (embeddings[0].length < 2) {
+        throw new Error(`Not enough embedding dimensions to project (found ${embeddings[0].length}, need at least 2).`);
+    }
+
+    const X = new Matrix(embeddings);
+    const centered = X.subRowVector(X.mean('column'));
+    const scores = powerIteratePca(centered, 2, {
+        seed: options.seed,
+        maxIterations: options.maxIterations,
+        tolerance: options.tolerance,
+        onLog,
+    });
+
+    return scores.to2DArray().map(([x, y]) => ({ x, y }));
+}
+
 const PROJECTORS = {
     umap: projectUmap,
+    pca: projectPca,
 };
 
 /**
@@ -42,7 +108,7 @@ const PROJECTORS = {
  * Returns the final viewer-ready contract { version, sources, points }, with
  * `embedding` stripped back out.
  */
-export async function projectItems(embedded, { method = 'umap', onLog, ...options } = {}) {
+export async function projectItems(embedded, { method = 'pca', onLog, ...options } = {}) {
     const projector = PROJECTORS[method];
     if (!projector) {
         throw new Error(`Unknown projection method "${method}". Available: ${Object.keys(PROJECTORS).join(', ')}`);

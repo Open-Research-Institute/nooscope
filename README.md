@@ -22,6 +22,15 @@ Toolkit for visualizing the evolving territories in social media discourse.
 3. **Visualize.** Open `viewer.html`, drag in `data/my-dataset/output.json`.
    That's it — the file is the whole artifact; share it, host it, commit it.
 
+## Supported collectors
+
+| Source | Capture method | Notes |
+| --- | --- | --- |
+| [Twitter / X](src/collectors/twitter/README.md) | Bookmarklet | Threading is flattened (every reply parents to the root) |
+| [Bluesky](src/collectors/bluesky/README.md) | Manual URL paste | Single thread only |
+| [YouTube](src/collectors/youtube/README.md) | Manual URL paste | Needs a one-time API key; comments only |
+| [Hacker News](src/collectors/hackernews/README.md) | Manual URL paste | Full comment tree |
+
 ## Development
 
 ```

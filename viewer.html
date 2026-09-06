@@ -13,26 +13,24 @@
         
         <!-- Controls Panel (Left) -->
         <aside class="controls-panel w-[400px] bg-white border-r border-slate-200 flex flex-col shadow-lg z-10">
-            <!-- Header -->
-            <div class="p-6 shrink-0 space-y-6">
-                <header class="flex justify-between items-center">
+            <!-- Header + Source Manager List share one scroll region, so the list's -->
+            <!-- scrollbar spans the whole panel and scrolls under the sticky header. -->
+            <div class="flex-1 overflow-y-auto px-6">
+                <header class="sticky top-0 z-10 bg-white pt-6 pb-4 flex justify-between items-center">
                     <h1 class="text-2xl font-bold text-sky-600 tracking-tight">
                         <a href="index.html" class="hover:text-sky-700 transition-colors">Postscope</a>
                     </h1>
                 </header>
-                
+
                 <div id="visualization-title-area" class="relative -mt-2"></div>
                 <div id="source-info" class="text-sm text-slate-700"></div>
-                
-                <div class="space-y-4">
+
+                <div class="space-y-4 mt-6">
                     <button id="toggle-labels-button" class="w-full inline-flex items-center justify-center px-4 py-2 bg-white border border-slate-300 rounded-md font-semibold text-slate-700 hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-500 transition-colors">Toggle Text</button>
                 </div>
-                 <div id="status-area"></div>
-            </div>
+                <div id="status-area"></div>
 
-            <!-- Source Manager List -->
-            <div class="flex-1 overflow-y-auto px-6 border-t border-slate-200">
-                <div id="cluster-manager" class="py-6">
+                <div id="cluster-manager" class="py-6 mt-6 border-t border-slate-200">
                     <label class="block text-sm font-semibold text-slate-800 mb-3">Sources</label>
                     <div id="cluster-list-container" class="space-y-1"></div>
                 </div>

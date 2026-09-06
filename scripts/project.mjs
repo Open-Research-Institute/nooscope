@@ -15,7 +15,7 @@ async function main() {
 
     const embedded = JSON.parse(await fs.readFile(input, 'utf-8'));
     const result = await projectItems(embedded, {
-        method: method || 'umap',
+        method: method || 'pca',
         onLog: (msg) => console.log(`[project] ${msg}`),
     });
 

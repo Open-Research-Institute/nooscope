@@ -1,3 +1,6 @@
+// Hides the per-source "unique reach" diff toggle. Flip to true to bring it back.
+const SHOW_NEGATIVE_SPACE_TOGGLE = false;
+
 function debounce(func, delay) { let timeout; return function (...args) { const context = this; clearTimeout(timeout); timeout = setTimeout(() => func.apply(context, args), delay); }; }
 const truncate = (str, maxLength) => { if (!str || str.length <= maxLength) return str; return str.substring(0, maxLength) + '...'; };
 import { getColorForSource } from '../shared/sourceColors.js';
@@ -321,7 +324,12 @@ export class UIController {
         // mask, not have it competing with the dots underneath.
         const showPoints = this.negativeSpaceLabel === null;
         visualizer.render(items, coords, labels, appState.getSourceCount(), appState.getArePointLabelsVisible(), shouldFitBounds, appState.getSearchQuery(), appState.getIsSearchCaseSensitive(), showPoints, appState.getSourceOrder());
-        this._renderClusterUI(items, labels, appState);
+
+        // Cluster list/counts ignore each source's own visibility toggle, so hiding
+        // a source doesn't make its row read as 0 posts — it's still there, just
+        // not drawn on the map.
+        const unhidden = appState.getFilteredData({ ignoreVisibility: true });
+        this._renderClusterUI(unhidden.items, unhidden.labels, appState);
         this._renderNegativeSpace(coords, labels, appState, visualizer);
     }
     _renderNegativeSpace(coords, labels, appState, visualizer) {
@@ -367,18 +375,21 @@ export class UIController {
             visibilityToggle.title = isVisible ? "Hide this source's points" : "Show this source's points";
             visibilityToggle.addEventListener('click', (e) => { e.stopPropagation(); this.callbacks.onVisibilityChange(label, !isVisible); });
             const countSpan = document.createElement('span'); countSpan.className = 'cluster-item-count'; countSpan.textContent = clusterItems.length;
-            const negativeSpaceToggle = document.createElement('button'); negativeSpaceToggle.type = 'button';
-            const isNegativeSpaceActive = this.negativeSpaceLabel === label;
-            negativeSpaceToggle.className = `cluster-negative-space-toggle ${isNegativeSpaceActive ? 'active' : ''}`;
-            negativeSpaceToggle.innerHTML = `<span class="material-symbols-outlined">difference</span>`;
-            negativeSpaceToggle.title = isNegativeSpaceActive
-                ? "Hide this source's unique reach"
-                : "Show where this source reaches in the embedding that no other visible source does";
-            negativeSpaceToggle.addEventListener('click', (e) => {
-                e.stopPropagation();
-                this.negativeSpaceLabel = isNegativeSpaceActive ? null : label;
-                this.callbacks.onNegativeSpaceToggle();
-            });
+            let negativeSpaceToggle = null;
+            if (SHOW_NEGATIVE_SPACE_TOGGLE) {
+                negativeSpaceToggle = document.createElement('button'); negativeSpaceToggle.type = 'button';
+                const isNegativeSpaceActive = this.negativeSpaceLabel === label;
+                negativeSpaceToggle.className = `cluster-negative-space-toggle ${isNegativeSpaceActive ? 'active' : ''}`;
+                negativeSpaceToggle.innerHTML = `<span class="material-symbols-outlined">difference</span>`;
+                negativeSpaceToggle.title = isNegativeSpaceActive
+                    ? "Hide this source's unique reach"
+                    : "Show where this source reaches in the embedding that no other visible source does";
+                negativeSpaceToggle.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.negativeSpaceLabel = isNegativeSpaceActive ? null : label;
+                    this.callbacks.onNegativeSpaceToggle();
+                });
+            }
 
             // Moves this source through sourceOrder — same order the list is rendered in,
             // so "up" both moves the row up and brings it in front on the map.
@@ -394,7 +405,7 @@ export class UIController {
             moveDownBtn.disabled = i === displayOrder.length - 1;
             moveDownBtn.addEventListener('click', (e) => { e.stopPropagation(); this.callbacks.onReorderSource(label, -1); });
 
-            clusterItemEl.append(swatch, nameInput, countSpan, negativeSpaceToggle, visibilityToggle, moveUpBtn, moveDownBtn);
+            clusterItemEl.append(swatch, nameInput, countSpan, ...(negativeSpaceToggle ? [negativeSpaceToggle] : []), visibilityToggle, moveUpBtn, moveDownBtn);
             clusterItemEl.addEventListener('click', () => this._handleClusterSelection(label, clusters)); this.clusterListContainer.appendChild(clusterItemEl);
         });
         if (previouslyActiveLabel !== undefined) {

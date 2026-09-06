@@ -23,6 +23,7 @@
   "dependencies": {
     "hdbscan-ts": "^1.0.16",
     "maplibre-gl": "^4.0.0",
+    "ml-matrix": "^6.15.0",
     "stemmer": "^2.0.1",
     "umap-js": "^1.4.0"
   }
