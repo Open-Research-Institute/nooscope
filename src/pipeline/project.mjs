@@ -1,5 +1,6 @@
 import { UMAP } from 'umap-js';
 import { Matrix } from 'ml-matrix';
+import tsnejs from 'tsne';
 
 const RANDOM_SEED = 1991;
 function mulberry32(a) {
@@ -30,6 +31,37 @@ function projectUmap(items, embeddings, options = {}, onLog) {
         if (i % 50 === 0) onLog?.(`projecting: ${Math.round((i / nEpochs) * 100)}%`);
     }
     return umap.getEmbedding().map(([x, y]) => ({ x, y }));
+}
+
+// t-SNE, in the same spirit as the UMAP projector above but optimizing a very
+// different objective: it matches pairwise similarities (not local neighbor
+// graphs) between high- and low-D space, which tends to produce tighter,
+// more separated clusters at the cost of meaningful inter-cluster distances
+// (unlike PCA, and less directly comparable than UMAP's).
+function projectTsne(items, embeddings, options = {}, onLog) {
+    const n = embeddings.length;
+    // Perplexity is roughly "expected neighbors per point" — the binary search
+    // inside tsne.js that solves for it degenerates as perplexity approaches
+    // n, so keep it well below that (same spirit as UMAP's nNeighbors clamp).
+    const maxPerplexity = Math.floor((n - 1) / 3);
+    if (maxPerplexity < 1) {
+        throw new Error(`Not enough points to project (found ${n}, need at least 4).`);
+    }
+    const perplexity = Math.min(options.perplexity ?? 30, maxPerplexity);
+
+    const tsne = new tsnejs.tSNE({
+        dim: 2,
+        perplexity,
+        epsilon: options.epsilon ?? 10,
+    });
+    tsne.initDataRaw(embeddings);
+
+    const nIter = options.nIter ?? 500;
+    for (let i = 0; i < nIter; i++) {
+        tsne.step();
+        if (i % 50 === 0) onLog?.(`projecting: ${Math.round((i / nIter) * 100)}%`);
+    }
+    return tsne.getSolution().map(([x, y]) => ({ x, y }));
 }
 
 // Gram-Schmidt orthonormalization of a matrix's columns, in place. Returns
@@ -99,6 +131,7 @@ function projectPca(items, embeddings, options = {}, onLog) {
 const PROJECTORS = {
     umap: projectUmap,
     pca: projectPca,
+    tsne: projectTsne,
 };
 
 /**
