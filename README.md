@@ -1,35 +1,37 @@
 # Noöscope
 
-Toolkit for visualizing the evolving territories in social media discourse.
+Toolkit for visualizing idea spaces & their evolution over time.
 
-1. **Scrape.** Click the bookmarklet on a post/profile/timeline (Twitter), a post
-   (Bluesky), or a video (YouTube), and save the downloaded JSON into
-   `data/sources/`. Bluesky, YouTube, and Hacker News can also be run by hand — paste
-   a thread/video/item URL straight into `bluesky.html` / `youtube.html` /
-   `hackernews.html`. YouTube needs a one-time API key paste into `youtube.html`
-   (saved in that browser's local storage) — see the note on that page for how to get
-   one.
-2. **Run the pipeline.**
-   ```
-   node scripts/pipeline.mjs data/sources/scrape-1.json data/sources/scrape-2.json -o data/my-dataset
-   ```
-   This writes `data/my-dataset/output.json`, plus `data/my-dataset/sources.json`
-   recording which sources went in — so later you can re-run the same dataset
-   (e.g. after adding more sources to it) with just:
-   ```
-   node scripts/pipeline.mjs data/my-dataset
-   ```
-3. **Visualize.** Open `viewer.html`, drag in `data/my-dataset/output.json`.
-   That's it — the file is the whole artifact; share it, host it, commit it.
+1. Data is scraped by one or more sources and normalized into a standard message format
+2. Semantic embeddings and 2D projection is computed
+3. A stateless viewer can visualize that final output
+
+The idea is that the input (the actual messages) can be scraped once and stored in an open database, all derived data (semantic embeddings) can be attached to the source and also cached for others to use.
+
+Over time anyone can build custom frontends for this pipeline, and more and more people can connect their data to it.
 
 ## Supported collectors
 
-| Source | Capture method | Notes |
-| --- | --- | --- |
-| [Twitter / X](src/collectors/twitter/README.md) | Bookmarklet | Threading is flattened (every reply parents to the root) |
-| [Bluesky](src/collectors/bluesky/README.md) | Manual URL paste | Single thread only |
-| [YouTube](src/collectors/youtube/README.md) | Manual URL paste | Needs a one-time API key; comments only |
-| [Hacker News](src/collectors/hackernews/README.md) | Manual URL paste | Full comment tree |
+Anything that collects message data and formats it using the standard spec [docs/spec.md](docs/spec.md) can use this pipeline. 
+
+This repo contains the following scrapers/collectors:
+
+- Twitter - a bookmarklet that runs on a specific tweet and scrapes all replies from the DOM
+- Bluesky - takes a URL of a tweet and collects all top level replies
+- YouTube - supports shorts or regular videos
+- Hacker News - all replies (not just top level) 
+
+To be worked on next:
+
+- A reddit thread
+- Instagram post
+- Threads post
+- Facebook post
+- Signal group chat
+- Whatsapp group chat
+- Discord server
+- NYT comment section or something like that?
+   - Ars Technica 
 
 ## Development
 
@@ -41,13 +43,13 @@ npm run build   # static production build, output in dist/
 
 ## Example run
 
-Initial:
+Once data is scrapped and placed in `data/sources/`, the pipeline run computes semantic embeddings followed by a 2D projection like UMAP or PCA. 
 
 ```
 node scripts/pipeline.mjs data/sources/twitter-bennjordan-flock-takes-357.json data/sources/bluesky-bennjordan-flock-takes-44.json -o data/benn-jordan
 ```
 
-To recreate:
+To recreate a computed output from the same sources:
 
 ```
 node scripts/pipeline.mjs data/benn-jordan
