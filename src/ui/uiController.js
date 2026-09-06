@@ -2,6 +2,22 @@
 const SHOW_NEGATIVE_SPACE_TOGGLE = false;
 
 function debounce(func, delay) { let timeout; return function (...args) { const context = this; clearTimeout(timeout); timeout = setTimeout(() => func.apply(context, args), delay); }; }
+function throttle(func, delay) {
+    let lastCall = 0; let timeout;
+    return function (...args) {
+        const context = this;
+        const now = Date.now();
+        const remaining = delay - (now - lastCall);
+        if (remaining <= 0) {
+            clearTimeout(timeout);
+            lastCall = now;
+            func.apply(context, args);
+        } else {
+            clearTimeout(timeout);
+            timeout = setTimeout(() => { lastCall = Date.now(); func.apply(context, args); }, remaining);
+        }
+    };
+}
 const truncate = (str, maxLength) => { if (!str || str.length <= maxLength) return str; return str.substring(0, maxLength) + '...'; };
 import { getColorForSource } from '../shared/sourceColors.js';
 
@@ -202,7 +218,7 @@ export class UIController {
     }
 
     // Create the debouncer locally for the class instance
-    _debouncedTimeEmit = debounce(() => this._emitTimeRangeChange(), 50);
+    _debouncedTimeEmit = throttle(() => this._emitTimeRangeChange(), 50);
 
     _emitTimeRangeChange() {
         if (!this.callbacks.onTimeRangeChange) return;
