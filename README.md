@@ -23,13 +23,16 @@ This repo contains the following scrapers/collectors:
 
 To be worked on next:
 
+- LinkedIn
 - A reddit thread
+- Substack comments 
 - Instagram post
 - Threads post
 - Facebook post
 - Signal group chat
 - Whatsapp group chat
 - Discord server
+- TikTok video 
 - NYT comment section or something like that?
    - Ars Technica 
 
