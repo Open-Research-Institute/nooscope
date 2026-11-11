@@ -20,6 +20,7 @@ This repo contains the following scrapers/collectors:
 - Bluesky - takes a URL of a tweet and collects all top level replies
 - YouTube - supports shorts or regular videos
 - Hacker News - all replies (not just top level) 
+- Community Archive - tweets in a time window or from one account, via its API (command line: `npm run collect:ca`)
 
 To be worked on next:
 
