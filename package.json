@@ -13,7 +13,9 @@
     "dedup": "node scripts/dedup.mjs",
     "project": "node scripts/project.mjs",
     "pipeline": "node scripts/pipeline.mjs",
-    "lexicon": "node scripts/lexicon.mjs"
+    "lexicon": "node scripts/lexicon.mjs",
+    "collect:ca": "node scripts/collect-communityarchive.mjs",
+    "check": "node scripts/check-posts.mjs"
   },
   "devDependencies": {
     "autoprefixer": "^10.4.19",
