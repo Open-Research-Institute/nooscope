@@ -1,6 +1,7 @@
 import { AppState } from './state/appState.js';
 import { UIController } from './ui/uiController.js';
 import { EmbeddingVisualizer } from './ui/EmbeddingVisualizer.js';
+import { setupBackendPanel } from './backend/panel.js';
 
 document.addEventListener('DOMContentLoaded', () => {
     const appState = new AppState();
@@ -64,12 +65,15 @@ document.addEventListener('DOMContentLoaded', () => {
     // The viewer's only data entry point: a pipeline output file
     // (see src/pipeline/project.mjs) — { version, sources, points }. No embedding,
     // no analysis, no session — it just renders whatever shape of data it's given.
+    let currentData = null;
+
     function loadVisualization(data) {
         if (!data || !Array.isArray(data.points) || !Array.isArray(data.sources)) {
             ui.showError('That file doesn’t look like a visualization output (expected { sources, points }).');
-            return;
+            return false;
         }
 
+        currentData = data;
         appState.loadFromPipelineOutput(data);
 
         const title = deriveTitle(appState.getSources());
@@ -85,6 +89,7 @@ document.addEventListener('DOMContentLoaded', () => {
         ui.enableControls();
 
         emptyState.classList.add('hidden');
+        return true;
     }
 
     async function loadFromFile(file) {
@@ -125,6 +130,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
     ui.disableControls();
 
-    const dataUrl = new URLSearchParams(window.location.search).get('data');
+    const params = new URLSearchParams(window.location.search);
+    const dataUrl = params.get('data');
     if (dataUrl) loadFromUrl(dataUrl);
+
+    // ?backend=<worker-url>: read (and, with a write key, save) datasets on a
+    // backend someone else owns. ?dataset=<name> opens one straight away.
+    const backendUrl = params.get('backend');
+    if (backendUrl) {
+        setupBackendPanel({
+            backendUrl,
+            initialDataset: dataUrl ? null : params.get('dataset'),
+            loadVisualization,
+            getCurrent: () => currentData && { data: currentData, title: appState.getVisualizationName() },
+            showLoading: (m) => ui.showLoading(m),
+            showError: (m) => ui.showError(m),
+        });
+    }
 });
